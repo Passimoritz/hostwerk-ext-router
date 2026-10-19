@@ -1,0 +1,11 @@
+.router-ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.router-way { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.router-way.on { border-color: color-mix(in srgb, var(--ok) 50%, var(--line)); background: color-mix(in srgb, var(--ok) 5%, var(--surface)); }
+.router-way .badge { align-self: flex-start; }
+.router-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.router-facts > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); min-width: 0; }
+.router-facts b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.router-wifi { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.router-wifi-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); }
+.router-wifi-item.on { color: var(--text); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+.router-wifi-item.on > svg { color: var(--ok); }
