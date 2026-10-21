@@ -5,11 +5,13 @@ import { Btn, Callout, Field, InfoTip, Loading, Modal, Seg, SettingRow, Switch, 
 import { t } from '@hostwerk/i18n';
 import RouterAccess from './Access';
 import RouterV6 from './V6';
+import { RouterOverview, RouterTile } from './Overview';
 import './style.css';
 
 /*
- * Router & port forwarding: the router tab in "Go live" (slot "live.tabs", same address #/live/router as before), its own
- * page, and the "for friends on the internet" button on every Minecraft server (slot "mc.connect").
+ * Router & port forwarding: the router tab in "Go live" (slot "live.tabs", group "Make reachable", same address
+ * #/live/router as before), a tile on the dashboard, and the "for friends on the internet" button on every Minecraft server
+ * (slot "mc.connect"). Since 1.3 there is no own sidebar entry – the page itself stays reachable from Extensions → Open.
  */
 const copy = (x) => navigator.clipboard.writeText(x).then(() => toast.success('Copied'));
 
@@ -59,6 +61,7 @@ export function RouterTab() {
   return (
     <div className="stack">
       {d.direct && !d.kind && <InfoTip title="No router needed" icon={CheckCircle2}>{t('This computer has a public address directly ({ip}) – typical for rented servers in a data centre. Ports only have to be open in the firewall (tab “Security”).', { ip: d.localIp })}</InfoTip>}
+      <RouterOverview d={d} setData={r.setData} />
       {d.problems.map((p) => <Callout key={p} kind="warn">{p}</Callout>)}
       <div className="router-ways">
         {ways.map((w) => <div key={w.id} className={`router-way ${w.on ? 'on' : ''}`}><span className={`badge ${w.on ? 'ok' : ''}`}>{w.on ? t('active') : t('off')}</span><b className="small">{w.label}</b><span className="tiny muted">{w.text}</span></div>)}
@@ -108,7 +111,7 @@ export function RouterTab() {
         <div className="card">
           <div className="card-head"><ListChecks size={16} /><h3>All forwardings in the router</h3><span className="badge">{d.mappings.length}</span></div>
           {d.mappings.length === 0 ? <div className="card-body small muted">No forwardings set up.</div> : (
-            <table className="table"><thead><tr><th>Port</th><th>to</th><th>Description</th><th>From</th><th /></tr></thead><tbody>
+            <table className="table"><thead><tr><th>Port</th><th>to</th><th>Description</th><th>Set up by</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>
               {d.mappings.map((m) => (
                 <tr key={m.protocol + m.externalPort}>
                   <td className="mono small">{m.externalPort}/{m.protocol}{m.internalPort !== m.externalPort ? ` → ${m.internalPort}` : ''}</td>
@@ -164,6 +167,7 @@ function RouterPage() {
           <h1><RouterIcon /> Router & port forwarding</h1>
           <p>Reach your servers from the internet: forwardings, IPv6, DynDNS and – after signing in – devices and Wi-Fi of your router.</p>
         </div>
+        <div className="actions"><a className="btn sm ghost" href="#/live/router">Open in Go live</a></div>
       </div>
       <RouterTab />
     </div>
@@ -173,7 +177,8 @@ function RouterPage() {
 export default {
   pages: { main: RouterPage },
   slots: {
-    'live.tabs': [{ id: 'router', title: 'Router', icon: RouterIcon, Component: RouterTab, order: 30 }],
+    'live.tabs': [{ id: 'router', title: 'Router', icon: RouterIcon, Component: RouterTab, order: 30, group: 'erreichbar', after: 'teilen' }],
+    'dashboard.tiles': [{ id: 'state', title: 'Router', icon: RouterIcon, size: 'third', Component: RouterTile }],
     'mc.connect': [{ id: 'friends', title: 'For friends', Component: FriendsShare, order: 40 }],
   },
 };

@@ -18,7 +18,16 @@ Makes your servers reachable from the internet: port forwarding via UPnP/NAT-PMP
 - IPv6 and DS-Lite, DynDNS
 - “For friends on the internet” on every Minecraft server
 - Forwardings of other extensions (file share, Bedrock bridge …) with their owner – the automatic mode keeps them
-- Tab “Router” under Go live
+- **No own sidebar entry any more (since 1.3):** the router lives in Go live under *Make reachable → Router*, plus a tile
+  for the dashboard (Dashboard → Customise). The full page stays reachable from *Extensions → Open*.
+- **At a glance:** router found (with UPnP state: on, off, only partly allowed, NAT-PMP), forwardings, “reachable from
+  outside?” for every forwarded TCP port at once, public IPv4 and IPv6
+- **Conflicts:** port goes to another device, port wanted twice (extension and service), Hostwerk forwarding no longer
+  needed – each with a sentence on what to do
+- **Carrier NAT, DS-Lite, double NAT** are recognised and explained honestly – where forwardings cannot help, the page
+  offers the tunnel (“Share a page”) and a VPN without forwarding (Tailscale & co. through the “VPN access” extension)
+- Errors as sentences instead of codes (timeout, router off, NAT-PMP refused, internal router error …)
+- Column “Set up by”: who created each forwarding (owner from `router.forwards`)
 
 ## Install
 
@@ -38,7 +47,7 @@ node build-native.js .               # build the interface (sdk/build-native.js 
 node check.js . --strict             # same check as the catalogue (sdk/check.js)
 ```
 
-MikroTik and UniFi drivers are also checked against simulated routers (RouterOS 7 REST, UniFi OS with CSRF token, self-signed certificate) in Hostwerk: `node scripts/real-probes.js --only sim`.
+The drivers for MikroTik and UniFi also run in `tests/overview.test.js` against Hostwerk's replicas of real routers (`scripts/lib/sim`: RouterOS 7 REST, UniFi OS with CSRF token and session renewal, self-signed certificate, missing rights, two-factor) – the main repository is found next to this folder or through `HOSTWERK_DIR`, otherwise these tests are skipped. FRITZ!Box (TR-064) and OpenWrt are tested in `tests/access.test.js` against their own fakes.
 
 Interface source in `ui/src`, server part in `server/`. Texts in the code are English, German is in `locales/de.json`.
 

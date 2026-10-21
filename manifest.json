@@ -6,10 +6,10 @@
     "en": "Router & port forwarding"
   },
   "description": {
-    "de": "Macht deine Server aus dem Internet erreichbar: Portfreigaben per UPnP/NAT-PMP oder direkt über FRITZ!Box (TR-064) und OpenWrt, IPv6 und DS-Lite, DynDNS – plus Geräte, WLAN, neue IP und Neustart deines Routers.",
-    "en": "Makes your servers reachable from the internet: port forwarding via UPnP/NAT-PMP or directly through FRITZ!Box (TR-064) and OpenWrt, IPv6 and DS-Lite, DynDNS – plus devices, Wi-Fi, new IP and reboot of your router."
+    "de": "Macht deine Server aus dem Internet erreichbar – im Livebetrieb unter „Erreichbar machen“ und als Kachel auf der Übersicht: Portfreigaben per UPnP/NAT-PMP oder direkt über FRITZ!Box (TR-064), OpenWrt, MikroTik und UniFi, mit Besitzer jeder Freigabe, Konflikten und Prüfung von außen, IPv6 und DS-Lite, DynDNS – plus Geräte, WLAN mit Gast-QR-Code, neue IP und Neustart deines Routers.",
+    "en": "Makes your servers reachable from the internet – in Go live under “Make reachable” and as a dashboard tile: port forwarding via UPnP/NAT-PMP or directly through FRITZ!Box (TR-064), OpenWrt, MikroTik and UniFi, with the owner of every forwarding, conflicts and an outside check, IPv6 and DS-Lite, DynDNS – plus devices, Wi-Fi with guest QR code, new IP and reboot of your router."
   },
-  "version": "1.2.1",
+  "version": "1.3.0",
   "author": "Hostwerk",
   "homepage": "https://github.com/Passimoritz/hostwerk-ext-router",
   "license": "MIT",
@@ -21,20 +21,6 @@
   "permissions": [
     "native"
   ],
-  "page": {
-    "title": {
-      "de": "Router",
-      "en": "Router"
-    },
-    "description": {
-      "de": "Portfreigaben, IPv6, DynDNS und Router-Zugang.",
-      "en": "Port forwarding, IPv6, DynDNS and router access."
-    },
-    "icon": "router",
-    "nav": {
-      "group": "server"
-    }
-  },
   "backend": "server/index.js",
   "ui": "ui/index.js",
   "screenshots": [

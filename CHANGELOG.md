@@ -1,3 +1,12 @@
+## 1.3.0
+
+- No own sidebar entry any more: the router lives in Go live (Make reachable → Router), plus a dashboard tile; the full page stays reachable from Extensions → Open. / Kein eigener Seitenleisten-Eintrag mehr: Router im Livebetrieb (Erreichbar machen → Router) plus Übersichtskachel; die volle Seite bleibt über Erweiterungen → Öffnen erreichbar.
+- Overview at the top: router found with UPnP state, forwardings, reachable from outside (all forwarded TCP ports checked at once, result remembered), public IPv4 and IPv6. / Überblick oben: Router mit UPnP-Zustand, Freigaben, von außen erreichbar (gesammelt geprüft), öffentliche IPv4/IPv6.
+- Conflicts recognised: port given to another device, port wanted twice, forwarding no longer needed. / Konflikte: Port an anderem Gerät, doppelt gebraucht, nicht mehr gebraucht.
+- Carrier NAT and double NAT explained honestly with the way out (tunnel, VPN without forwarding). / Carrier-NAT und doppeltes NAT ehrlich erklärt, mit Ausweg (Tunnel, VPN ohne Freigabe).
+- Errors as sentences (timeout, router off, NAT-PMP, raw status codes); a wrong router password never answers 401 (that would sign you out of Hostwerk). / Fehler als Sätze; falsches Router-Kennwort antwortet nie mit 401.
+- Column "Set up by" for every forwarding; MikroTik and UniFi drivers tested against Hostwerk's router replicas. / Spalte „Angelegt von“; MikroTik- und UniFi-Treiber gegen Hostwerks Router-Nachbildungen getestet.
+
 ## 1.2.1
 
 - UniFi: removing the UDP (or TCP) part of a forwarding for "TCP and UDP" deleted the whole rule – now only that protocol goes, the other stays. / UniFi: Beim Entfernen des UDP- (oder TCP-)Teils einer Freigabe für „TCP und UDP“ verschwand die ganze Regel – jetzt nur dieses Protokoll.

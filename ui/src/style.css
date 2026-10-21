@@ -23,3 +23,8 @@
 .router-qr-text { text-align: center; }
 /* Drucken nur des QR-Codes – gilt nur, solange der Druck aus dem QR-Dialog kommt (Klasse am body) */
 @media print { body.router-printing * { visibility: hidden; } body.router-printing .router-qr, body.router-printing .router-qr *, body.router-printing .router-qr-text { visibility: visible; } }
+/* Überblick oben und Kachel */
+.router-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--sp-2); }
+.router-ov-tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.router-list { margin: var(--sp-1) 0 0; padding-left: var(--sp-5); }
+.router-tile { color: inherit; text-decoration: none; gap: var(--sp-1); }
