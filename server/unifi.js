@@ -14,6 +14,9 @@ class UniFi {
   async login() {
     const r = await request(`${this.base}/api/auth/login`, { method: 'POST', body: { username: this.user, password: this.pass, rememberMe: false }, insecure: this.insecure, timeout: this.timeout });
     if (r.status === 401 || r.status === 403 || r.status === 400) throw Object.assign(new Error('User name or password for the router is wrong.'), { code: 401 });
+    // UniFi-Konten mit Zwei-Faktor-Anmeldung (499) und gesperrte Anmeldung nach Fehlversuchen (429)
+    if (r.status === 499) throw Object.assign(new Error('This UniFi account needs two-factor sign-in. Create a local UniFi user without it (UniFi OS → Admins & Users → "Restrict to local access only").'), { code: 401 });
+    if (r.status === 429) throw Object.assign(new Error('UniFi blocks sign-ins for a while after too many wrong attempts – please wait a few minutes.'), { code: 429 });
     if (r.status >= 400) throw Object.assign(new Error(`The router answers with ${r.status}`), { code: r.status });
     const set = [].concat(r.headers['set-cookie'] || []);
     this.cookie = set.map((c) => c.split(';')[0]).join('; ');
@@ -24,6 +27,9 @@ class UniFi {
     if (!this.cookie) await this.login();
     const r = await request(`${this.base}/proxy/network/api/s/${encodeURIComponent(this.site)}${p}`, { method, body, insecure: this.insecure, timeout: this.timeout, headers: { cookie: this.cookie, ...(this.csrf ? { 'x-csrf-token': this.csrf } : {}) } });
     if (r.headers['x-updated-csrf-token']) this.csrf = r.headers['x-updated-csrf-token'];
+    // UniFi OS verlängert die Sitzung mit einem neuen TOKEN-Cookie – sonst endet sie mit dem alten
+    const set = [].concat(r.headers['set-cookie'] || []).map((c) => c.split(';')[0]).filter((c) => /^TOKEN=/.test(c));
+    if (set.length) this.cookie = [...String(this.cookie || '').split(/;\s*/).filter((c) => c && !/^TOKEN=/.test(c)), set[set.length - 1]].join('; ');
     if (r.status === 401 && retry) { this.cookie = null; return this.call(method, p, body, false); }
     if (r.status === 401) throw Object.assign(new Error('User name or password for the router is wrong.'), { code: 401 });
     if (r.status === 403) throw Object.assign(new Error('The UniFi user lacks the right for this (needs the role "Site Admin" for Network).'), { code: 606 });
@@ -72,9 +78,13 @@ class UniFi {
     return true;
   }
   async removeMapping({ externalPort, protocol = 'TCP' }) {
-    const m = (await this.mappings()).find((x) => x.externalPort === Number(externalPort) && x.protocol === protocol);
+    const all = await this.mappings();
+    const m = all.find((x) => x.externalPort === Number(externalPort) && x.protocol === protocol);
     if (!m) throw Object.assign(new Error('This forwarding does not exist.'), { code: 714 });
-    await this.call('DELETE', `/rest/portforward/${encodeURIComponent(m.id)}`);
+    // Eine Regel für TCP und UDP: nur das eine Protokoll entfernen, das andere bleibt (vorher war die ganze Regel weg)
+    const both = all.filter((x) => x.id === m.id).length > 1;
+    if (both) await this.call('PUT', `/rest/portforward/${encodeURIComponent(m.id)}`, { proto: protocol === 'TCP' ? 'udp' : 'tcp' });
+    else await this.call('DELETE', `/rest/portforward/${encodeURIComponent(m.id)}`);
     return true;
   }
   async reboot() { throw new Error('Restart the UniFi gateway in the UniFi app – it would also restart the whole network.'); }

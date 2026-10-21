@@ -1,3 +1,10 @@
+## 1.2.1
+
+- UniFi: removing the UDP (or TCP) part of a forwarding for "TCP and UDP" deleted the whole rule – now only that protocol goes, the other stays. / UniFi: Beim Entfernen des UDP- (oder TCP-)Teils einer Freigabe für „TCP und UDP“ verschwand die ganze Regel – jetzt nur dieses Protokoll.
+- UniFi: accounts with two-factor sign-in (499) and the lockout after wrong attempts (429) get a clear message; a renewed session cookie is used. / UniFi: Konten mit Zwei-Faktor-Anmeldung (499) und die Sperre nach Fehlversuchen (429) mit klarer Meldung; ein erneuertes Sitzungs-Cookie wird übernommen.
+- MikroTik without the interface list "WAN": clear hint instead of "input does not match …" (no rule without interface – it would also redirect traffic from the home network). / MikroTik ohne Schnittstellen-Liste „WAN“: klarer Hinweis.
+- Router off or wrong address: "The router does not answer." instead of ECONNRESET/ECONNREFUSED. / Router aus oder falsche Adresse: klare Meldung.
+
 ## 1.2.0
 
 - Public interface for other extensions: `router.forwards.add/remove/list/owned` with an owner (extension id). The automatic mode keeps these forwardings, the page shows the extension as their origin, a package only changes its own entries. File share and Bedrock bridge use it instead of writing the settings themselves. / Öffentliche Schnittstelle `router.forwards` mit Besitzer – die Automatik behält diese Freigaben, die Seite zeigt die Erweiterung als Herkunft.

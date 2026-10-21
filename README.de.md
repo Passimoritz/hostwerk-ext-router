@@ -38,6 +38,8 @@ node build-native.js .               # Oberfläche bauen (sdk/build-native.js au
 node check.js . --strict             # Prüfung wie im Katalog (sdk/check.js)
 ```
 
+Die Treiber für MikroTik und UniFi werden zusätzlich gegen nachgebildete Router geprüft (RouterOS-7-REST, UniFi OS mit CSRF-Token, selbstsigniertes Zertifikat) – in Hostwerk: `node scripts/real-probes.js --only sim`.
+
 Quelltext der Oberfläche in `ui/src`, Server-Teil in `server/`. Texte im Code sind Englisch, Deutsch steht in `locales/de.json`.
 
 Für andere Erweiterungen (`host.use('router')` oder `ctx.router`, vorher `typeof router.forwards === 'object'` prüfen – ab 1.2):

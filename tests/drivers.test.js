@@ -174,3 +174,45 @@ test('reachable from outside: asks the public check, only the port number goes o
   await assert.rejects(svc.reach(70000), /Invalid port/);
   await assert.rejects(svc.reach(80, { fetchFn: async () => ({ ok: false }) }), /cannot be reached/);
 });
+
+test('UniFi: removing one protocol of a TCP+UDP rule keeps the other; two-factor and lockout read clearly; renewed session cookie is used', async () => {
+  const st = { pf: [{ _id: 'p1', name: 'Web', dst_port: '443', fwd: '192.168.1.5', fwd_port: '443', proto: 'tcp_udp', enabled: true }], mode: 'ok', cookies: [] };
+  const srv = http.createServer(async (req, res) => {
+    const body = await readBody(req);
+    const send = (code, j, h = {}) => { res.writeHead(code, { 'content-type': 'application/json', ...h }); res.end(JSON.stringify(j)); };
+    if (req.url === '/api/auth/login') {
+      if (st.mode === 'mfa') return send(499, { code: 'MFA_AUTH_REQUIRED' });
+      if (st.mode === 'locked') return send(429, { code: 'AUTHENTICATION_FAILED_LIMIT_REACHED' });
+      return send(200, {}, { 'set-cookie': ['TOKEN=t1; Path=/; HttpOnly'], 'x-csrf-token': 'c1' });
+    }
+    st.cookies.push(req.headers.cookie);
+    const p = req.url.replace('/proxy/network/api/s/default', '');
+    if (p === '/rest/portforward' && req.method === 'GET') return send(200, { meta: { rc: 'ok' }, data: st.pf }, { 'set-cookie': ['TOKEN=t2; Path=/; HttpOnly'], 'x-updated-csrf-token': 'c2' });
+    if (p === '/rest/portforward/p1' && req.method === 'PUT') { Object.assign(st.pf[0], JSON.parse(body)); return send(200, { meta: { rc: 'ok' }, data: st.pf }); }
+    if (p === '/rest/portforward/p1' && req.method === 'DELETE') { st.pf = []; return send(200, { meta: { rc: 'ok' }, data: [] }); }
+    return send(404, { meta: { rc: 'error', msg: 'api.err.NotFound' } });
+  });
+  const base = await listen(srv);
+  const u = new UniFi({ base, user: 'hw', pass: 'pw' });
+  await u.removeMapping({ externalPort: 443, protocol: 'UDP' });
+  assert.deepStrictEqual([st.pf.length, st.pf[0].proto], [1, 'tcp'], 'TCP stays');
+  assert.strictEqual(st.cookies[st.cookies.length - 1], 'TOKEN=t2', 'renewed TOKEN cookie used');
+  await u.removeMapping({ externalPort: 443, protocol: 'TCP' });
+  assert.strictEqual(st.pf.length, 0);
+  st.mode = 'mfa'; await assert.rejects(new UniFi({ base, user: 'x', pass: 'y' }).info(), /two-factor/);
+  st.mode = 'locked'; await assert.rejects(new UniFi({ base, user: 'x', pass: 'y' }).info(), (e) => e.code === 429 && /wait/.test(e.message));
+  srv.close();
+});
+
+test('MikroTik without interface list "WAN": clear hint, no rule without interface; router off: clear message', async () => {
+  const srv = http.createServer(async (req, res) => {
+    await readBody(req);
+    const send = (code, j) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(j)); };
+    if (req.method === 'GET') return send(200, []);
+    return send(400, { error: 400, message: 'Bad Request', detail: 'input does not match any value of in-interface-list' });
+  });
+  const base = await listen(srv);
+  await assert.rejects(new MikroTik({ base, pass: 'pw' }).addMapping({ externalPort: 80, protocol: 'TCP', client: '192.168.88.2' }), /interface list "WAN"/);
+  srv.close();
+  await assert.rejects(new MikroTik({ base, pass: 'pw' }).info(), /does not answer/);
+});

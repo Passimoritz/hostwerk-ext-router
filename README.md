@@ -38,6 +38,8 @@ node build-native.js .               # build the interface (sdk/build-native.js 
 node check.js . --strict             # same check as the catalogue (sdk/check.js)
 ```
 
+MikroTik and UniFi drivers are also checked against simulated routers (RouterOS 7 REST, UniFi OS with CSRF token, self-signed certificate) in Hostwerk: `node scripts/real-probes.js --only sim`.
+
 Interface source in `ui/src`, server part in `server/`. Texts in the code are English, German is in `locales/de.json`.
 
 For other extensions (`host.use('router')` or `ctx.router`, check with `typeof router.forwards === 'object'` – since 1.2):

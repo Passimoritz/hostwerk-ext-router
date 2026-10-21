@@ -313,5 +313,8 @@
       "UniFi: {}",
       "UniFi: {}"
     ]
-  ]
+  ],
+  "The router has no interface list \"WAN\" (default configuration). Add the internet interface to a list named WAN in WinBox → Interfaces → Interface List.": "Der Router hat keine Schnittstellen-Liste „WAN“ (Standard-Einrichtung). Die Internet-Schnittstelle in WinBox → Interfaces → Interface List in eine Liste namens WAN aufnehmen.",
+  "This UniFi account needs two-factor sign-in. Create a local UniFi user without it (UniFi OS → Admins & Users → \"Restrict to local access only\").": "Dieses UniFi-Konto braucht eine Zwei-Faktor-Anmeldung. Bitte einen lokalen UniFi-Nutzer ohne sie anlegen (UniFi OS → Admins & Users → „Restrict to local access only“).",
+  "UniFi blocks sign-ins for a while after too many wrong attempts – please wait a few minutes.": "UniFi sperrt die Anmeldung nach zu vielen Fehlversuchen eine Weile – bitte ein paar Minuten warten."
 }

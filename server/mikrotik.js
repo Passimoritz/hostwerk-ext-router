@@ -43,7 +43,14 @@ class MikroTik {
     const exists = (await this.mappings()).find((m) => m.externalPort === Number(externalPort) && m.protocol === protocol);
     if (exists && exists.internalClient !== client) throw Object.assign(new Error('The port is already forwarded to another device in the router.'), { code: 718 });
     if (exists) return true;
-    await this.call('PUT', '/ip/firewall/nat', { chain: 'dstnat', action: 'dst-nat', protocol: protocol.toLowerCase(), 'dst-port': String(externalPort), 'in-interface-list': 'WAN', 'to-addresses': client, 'to-ports': String(internalPort || externalPort), comment: String(description || 'Hostwerk').slice(0, 60) });
+    try {
+      await this.call('PUT', '/ip/firewall/nat', { chain: 'dstnat', action: 'dst-nat', protocol: protocol.toLowerCase(), 'dst-port': String(externalPort), 'in-interface-list': 'WAN', 'to-addresses': client, 'to-ports': String(internalPort || externalPort), comment: String(description || 'Hostwerk').slice(0, 60) });
+    } catch (e) {
+      // Ohne Liste „WAN“ (Router ohne Standard-Einrichtung) würde eine Regel ohne Schnittstelle auch Verkehr aus dem
+      // Heimnetz umleiten – deshalb keine Regel ohne, sondern ein klarer Hinweis
+      if (e.code === 400 && /in-interface-list/.test(e.message)) throw Object.assign(new Error('The router has no interface list "WAN" (default configuration). Add the internet interface to a list named WAN in WinBox → Interfaces → Interface List.'), { code: 400 });
+      throw e;
+    }
     return true;
   }
   async removeMapping({ externalPort, protocol = 'TCP' }) {

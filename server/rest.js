@@ -23,7 +23,12 @@ function request(url, { method = 'GET', headers = {}, body, insecure = false, ti
       });
     });
     req.on('timeout', () => req.destroy(Object.assign(new Error('The router does not answer.'), { code: 'ETIMEDOUT' })));
-    req.on('error', (e) => reject(/CERT|SELF_SIGNED|UNABLE_TO_VERIFY/i.test(e.code || e.message) ? Object.assign(new Error('The router uses its own certificate – allow it at sign-in ("Router has its own certificate").'), { code: 'CERT' }) : e));
+    req.on('error', (e) => {
+      if (/CERT|SELF_SIGNED|UNABLE_TO_VERIFY/i.test(e.code || e.message)) return reject(Object.assign(new Error('The router uses its own certificate – allow it at sign-in ("Router has its own certificate").'), { code: 'CERT' }));
+      // Router aus, falsche Adresse oder Verbindung abgerissen: klare Meldung statt „ECONNRESET“
+      if (/^(ECONNREFUSED|ECONNRESET|EHOSTUNREACH|ENETUNREACH|ENOTFOUND|EAI_AGAIN|EPIPE)$/.test(e.code || '')) return reject(Object.assign(new Error('The router does not answer.'), { code: e.code }));
+      return reject(e);
+    });
     if (data) req.write(data);
     req.end();
   });
