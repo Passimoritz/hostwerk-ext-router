@@ -36,6 +36,54 @@ function wifiQrText({ ssid, password = '', security = 'WPA', hidden = false }) {
 }
 
 const PREFIX = 'Hostwerk: ';
+
+/**
+ * Technische Fehler in Sätze, die ein Mensch versteht (Englisch – Deutsch über locales/de.json). Was schon ein Satz ist,
+ * bleibt; nur Codes und rohe Antworten werden übersetzt.
+ */
+const FRIENDLY = [
+  [/^(ETIMEDOUT|ESOCKETTIMEDOUT)$|timed? ?out|aborted due to timeout|The operation was aborted/i, 'The router took too long to answer – is it busy or restarting? Try again in a minute.'],
+  [/^(ECONNREFUSED|ECONNRESET|EHOSTUNREACH|ENETUNREACH|EPIPE)$|fetch failed/i, 'The router does not answer.'],
+  [/^(ENOTFOUND|EAI_AGAIN)$/i, 'The router address cannot be found – check the address.'],
+  [/^No answer via NAT-PMP$/, 'The router does not answer to NAT-PMP – switch on UPnP or NAT-PMP in the router, or forward the port by hand.'],
+  [/^NAT-PMP refused$|^NAT-PMP error \d+$/, 'The router refused the forwarding (NAT-PMP). Allow it in the router or forward the port by hand.'],
+  [/^The router answers with 5\d\d$/, 'The router has an internal error – restart it or try again later.'],
+  [/^The router answers with 40[13]$/, 'The router does not allow this – sign in under “Router access” with a user who may change forwardings.'],
+];
+function friendly(e) {
+  const msg = String((e && (e.code && !e.message ? e.code : e.message)) || e || '');
+  const code = e && typeof e.code === 'string' ? e.code : '';
+  for (const [re, text] of FRIENDLY) if (re.test(code) || re.test(msg)) return text;
+  return msg;
+}
+
+/**
+ * Konflikte, die man sonst erst merkt, wenn etwas nicht geht:
+ *   other  – der Router gibt den Port an ein anderes Gerät weiter
+ *   double – zwei Pakete wollen denselben Port (eine Erweiterung und ein öffentlicher Dienst bzw. von Hand)
+ *   stale  – eine Hostwerk-Freigabe im Router, die niemand mehr braucht (räumt „Jetzt abgleichen“ weg)
+ * → [{ kind, port, protocol, text, vars }]
+ */
+function findConflicts({ wanted, mappings, extra, publicPorts, nameOf }) {
+  const out = [];
+  for (const w of wanted || []) if (w.state === 'other') out.push({ kind: 'other', port: w.port, protocol: w.protocol, text: 'Port {port}/{protocol} is forwarded to another device ({ip}) – {who} cannot be reached from outside.', vars: { port: w.port, protocol: w.protocol, ip: w.other, who: w.label || `Port ${w.port}` } });
+  for (const x of extra || []) {
+    const p = (publicPorts || []).find((y) => y.port === x.port && (y.proto === 'UDP' ? 'UDP' : 'TCP') === x.protocol);
+    if (p) out.push({ kind: 'double', port: x.port, protocol: x.protocol, text: 'Port {port}/{protocol} is wanted twice: by {a} and by {b}. Only one of them can get it – change the port of one.', vars: { port: x.port, protocol: x.protocol, a: x.owner ? nameOf(x.owner) : 'your own forwarding', b: p.label || 'a Hostwerk service' } });
+  }
+  for (const m of mappings || []) if (m.ours && m.origin && m.origin.stale) out.push({ kind: 'stale', port: m.externalPort, protocol: m.protocol, text: 'Port {port}/{protocol} is still forwarded but no longer needed – “Sync now” removes it.', vars: { port: m.externalPort, protocol: m.protocol } });
+  return out;
+}
+
+/** Zusammenfassung für Kachel und Kopf: wie ist dieser PC aus dem Internet erreichbar? */
+function reachability(st) {
+  if (st.direct && !st.kind) return 'direct';
+  if (st.dslite) return 'dslite';
+  if (st.cgnat) return st.net && st.net.v6 && st.net.v6.stable ? 'dslite' : 'cgnat';
+  if (st.doubleNat) return 'double';
+  if (!st.gateway) return 'offline';
+  return 'normal';
+}
 const VENDOR_HINTS = [
   { re: /fritz|avm/i, name: 'FRITZ!Box', web: 'http://fritz.box', text: 'On the FRITZ!Box under Internet → Permit Access → Port Sharing, switch on "Permit independent port sharing for this device" for this PC. Otherwise it refuses automatic forwardings.' },
   { re: /speedport|telekom/i, name: 'Speedport', web: 'http://speedport.ip', text: 'On the Speedport under Home network → Network settings → UPnP, switch on "Activate UPnP".' },
@@ -300,6 +348,26 @@ class RouterService {
     return { port: p, reachable: !!j.reachable, ip: j.ip || null, at: Date.now() };
   }
 
+  /**
+   * „Von außen prüfen“ für alle freigegebenen TCP-Ports auf einmal (nacheinander, höchstens 12) – das Ergebnis bleibt für
+   * Kachel und Kopf gemerkt. UDP lässt sich so nicht prüfen und steht als „nicht prüfbar“ da.
+   * → { at, ip, results: [{ port, protocol, label, reachable | null, error }], reachable: true | false | null }
+   */
+  async reachAll({ fetchFn = fetch } = {}) {
+    const st = await this.status();
+    const list = st.wanted.filter((w) => w.state === 'ok').slice(0, 12);
+    const results = [];
+    let ip = null;
+    for (const w of list) {
+      if (w.protocol !== 'TCP') { results.push({ port: w.port, protocol: w.protocol, label: w.label || '', reachable: null }); continue; }
+      try { const r = await this.reach(w.port, { fetchFn }); ip = r.ip || ip; results.push({ port: w.port, protocol: w.protocol, label: w.label || '', reachable: r.reachable }); } catch (e) { results.push({ port: w.port, protocol: w.protocol, label: w.label || '', reachable: null, error: this.t(friendly(e)) }); }
+    }
+    const tcp = results.filter((r) => r.reachable !== null);
+    const out = { at: Date.now(), ip, results, reachable: tcp.length ? tcp.every((r) => r.reachable) : null };
+    this.cfg.outside = out; this.ctx.settings.save();
+    return out;
+  }
+
   async status(force = false) {
     const { t } = this;
     const igd = await this.igd(force);
@@ -345,6 +413,13 @@ class RouterService {
     }
     // Herkunft jeder Freigabe im Router: Hostwerks eigene wie gewünscht, fremde von einem anderen Gerät oder Programm
     for (const m of out.mappings) { const w = out.wanted.find((x) => x.port === m.externalPort && x.protocol === m.protocol); m.origin = m.ours ? (w ? w.origin : { kind: 'hostwerk', stale: true }) : { kind: 'other' }; }
+    // UPnP: an, aus (Router gefunden, antwortet aber nicht) oder darf nicht (FRITZ!Box ohne „selbstständige Portfreigaben“)
+    out.upnp = { state: igd.upnp ? (igd.fw6 && igd.fw6.allowed === false ? 'limited' : 'on') : igd.natpmp ? 'natpmp' : igd.gateway ? 'off' : 'none', ipv6: !!(igd.upnp && igd.upnp.control6) };
+    let publicPorts = [];
+    try { publicPorts = this.ctx.security ? this.ctx.security.publicPorts() : []; } catch { publicPorts = []; }
+    out.conflicts = findConflicts({ wanted: out.wanted, mappings: out.mappings, extra: this.cfg.extra, publicPorts, nameOf: (id) => this.extName(id) }).map((c) => ({ ...c, text: t(c.text, { ...c.vars, a: t(c.vars.a || ''), b: t(c.vars.b || '') }) }));
+    out.reachability = reachability(out);
+    out.outside = this.cfg.outside || null;
     return out;
   }
 
@@ -412,8 +487,11 @@ class RouterService {
     this.lastFail = r.failed.length > 0;
   }
 
-  routes(r) {
+  routes(rIn) {
     const { t } = this;
+    // Jede Route: technische Fehler (ECONNRESET, Zeitüberschreitung, NAT-PMP …) als verständlicher Satz
+    const wrap = (fn) => async (req, res, next) => { try { await fn(req, res, next); } catch (e) { const m = t(friendly(e)); throw Object.assign(new Error(m), { status: e.status || (e.code === 401 ? 400 : 502) } /* nie 401: das hieße für Hostwerk „abgemeldet“ */); } };
+    const r = Object.fromEntries(['get', 'post', 'put', 'delete'].map((m) => [m, (p, fn) => rIn[m](p, wrap(fn))]));
     r.get('/router', async (req, res) => res.json(await this.status(req.query.refresh === '1')));
     r.post('/router/forward', async (req, res) => {
       const b = req.body || {};
@@ -466,6 +544,7 @@ class RouterService {
       res.json({ svg });
     });
     r.get('/router/reach/:port', async (req, res) => res.json(await this.reach(req.params.port)));
+    r.post('/router/reach-all', async (req, res) => res.json(await this.reachAll()));
     r.put('/router/wifi/:index', async (req, res) => { await this.via((d) => d.setWifi(req.params.index, !!(req.body || {}).enabled)); res.json(await this.via((d) => d.wifi())); });
     r.post('/router/devices/:mac/wake', async (req, res) => { await this.via((d) => d.wake(req.params.mac)); res.json({ ok: true }); });
     r.put('/router/devices/:mac', async (req, res) => { await this.via((d) => d.rename(req.params.mac, String((req.body || {}).name || '').slice(0, 60))); res.json({ ok: true }); });
@@ -481,4 +560,4 @@ class RouterService {
   }
 }
 
-module.exports = { RouterService, PREFIX, VENDOR_HINTS, KINDS, wifiQrText };
+module.exports = { RouterService, PREFIX, VENDOR_HINTS, KINDS, wifiQrText, friendly, findConflicts, reachability };
