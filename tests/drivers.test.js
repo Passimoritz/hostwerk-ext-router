@@ -134,6 +134,37 @@ test('every forwarding says where it comes from', () => {
   assert.deepStrictEqual(by['8080/TCP'], { kind: 'manual' });
 });
 
+test('router.forwards: other packages add and remove their own forwardings, the automatic mode keeps them', async () => {
+  const svc = service();
+  const done = [];
+  svc.forward = async (w) => { done.push(['add', w.port, w.protocol]); return { port: w.port, protocol: w.protocol, client: '192.168.1.5' }; };
+  svc.unforward = async (w) => { done.push(['remove', w.port, w.protocol]); return true; };
+  const f = svc.forwards;
+  assert.deepStrictEqual(await f.add({ port: 2022, label: 'SFTP (file share)' }, 'file-share'), { port: 2022, protocol: 'TCP', client: '192.168.1.5' });
+  assert.deepStrictEqual(f.owned('file-share'), [{ port: 2022, protocol: 'TCP', label: 'SFTP (file share)', owner: 'file-share' }]);
+  assert.deepStrictEqual(f.list().map((x) => [x.port, x.owner]), [[8080, null], [2022, 'file-share']]);
+  // „wanted“ enthält sie mit Herkunft – Abgleich und Automatik legen sie an und räumen sie nicht weg
+  const w = svc.wanted().find((x) => x.port === 2022);
+  assert.deepStrictEqual(w.origin, { kind: 'extension', id: 'file-share', name: 'file-share' });
+  assert.ok(!('owner' in w));
+  // Ein anderes Paket darf den Port nicht übernehmen und keine fremden Einträge löschen
+  await assert.rejects(f.add({ port: 2022 }, 'bedrock-bridge'), /already used by file-share/);
+  assert.strictEqual(await f.remove({ port: 2022 }, 'bedrock-bridge'), false);
+  assert.strictEqual(await f.remove({ port: 8080 }, 'file-share'), false, 'by hand stays');
+  // Von Hand gemerkt → geht an das Paket über; Port, den Hostwerk selbst braucht, bleibt im Router
+  await f.add({ port: 8080, label: 'Web' }, 'file-share', { now: false });
+  assert.strictEqual(f.owned('file-share').length, 2);
+  assert.ok(!done.some((d) => d[1] === 8080), 'now: false – only remembered');
+  assert.strictEqual(await f.remove({ port: 2022 }, 'file-share'), true);
+  assert.deepStrictEqual(done.pop(), ['remove', 2022, 'TCP']);
+  await f.add({ port: 25565 }, 'file-share', { now: false });
+  assert.strictEqual(await f.remove({ port: 25565 }, 'file-share'), true);
+  assert.ok(!done.some((d) => d[0] === 'remove' && d[1] === 25565), 'Minecraft stays forwarded');
+  await assert.rejects(f.add({ port: 0 }, 'file-share'), /Invalid port/);
+  await assert.rejects(f.add({ port: 1, protocol: 'ICMP' }, 'file-share'), /TCP or UDP/);
+  assert.throws(() => f.owned('Not An Id'), /owner/);
+});
+
 test('reachable from outside: asks the public check, only the port number goes out', async () => {
   const svc = service();
   let asked = null;

@@ -216,8 +216,60 @@ class RouterService {
   wanted() {
     const origin = this.origins();
     const list = this.ctx.security ? this.ctx.security.publicPorts().map((p) => { const protocol = p.proto === 'UDP' ? 'UDP' : 'TCP'; return { port: p.port, protocol, label: p.label, origin: origin.get(`${p.port}/${protocol}`) || { kind: 'hostwerk' } }; }) : [];
-    for (const x of this.cfg.extra) if (!list.some((p) => p.port === x.port && p.protocol === x.protocol)) list.push({ ...x, origin: { kind: 'manual' } });
+    for (const x of this.cfg.extra) {
+      if (list.some((p) => p.port === x.port && p.protocol === x.protocol)) continue;
+      const { owner, ...rest } = x;
+      list.push({ ...rest, origin: owner ? { kind: 'extension', id: owner, name: this.extName(owner) } : { kind: 'manual' } });
+    }
     return list;
+  }
+  /** Anzeigename einer Erweiterung (deutsch, sonst englisch, sonst id). */
+  extName(id) { try { const e = this.ctx.extMarket && this.ctx.extMarket.get(id); const n = e && (e.names ? (e.names.de || e.names.en) : e.name); return (n && typeof n === 'object' ? n.de || n.en : n) || id; } catch { return id; } }
+
+  /**
+   * Öffentliche Schnittstelle für andere Pakete (router.forwards): Freigaben mit Besitzer statt selbst in cfg.extra zu
+   * schreiben. Gemerkte Freigaben gehören zu „wanted“ – der Automatikmodus legt sie an und entfernt sie nie; die
+   * Router-Seite zeigt den Besitzer als Herkunft. Ein Paket ändert nur seine eigenen Einträge (von Hand angelegte bleiben).
+   *   list()                                  → alle gemerkten [{ port, protocol, label, owner }] (owner null = von Hand)
+   *   owned(owner)                            → nur die des Pakets
+   *   add({ port, protocol, label }, owner, { now = true }) → merken und (now) gleich im Router anlegen; → { port, protocol, client }
+   *   remove({ port, protocol }, owner, { now = true })     → vergessen und (now) im Router entfernen; false = gehört nicht dem Paket
+   */
+  get forwards() {
+    const svc = this;
+    const OWNER = /^[a-z0-9][a-z0-9-]{1,39}$/;
+    const spec = (x) => {
+      const port = Number(x && x.port); const protocol = String((x && x.protocol) || 'TCP').toUpperCase();
+      if (!Number.isInteger(port) || port < 1 || port > 65535) throw Object.assign(new Error(svc.t('Invalid port')), { status: 400 });
+      if (!['TCP', 'UDP'].includes(protocol)) throw Object.assign(new Error(svc.t('Protocol must be TCP or UDP.')), { status: 400 });
+      return { port, protocol, label: String((x && x.label) || '').slice(0, 80) };
+    };
+    const who = (owner) => { if (!OWNER.test(String(owner || ''))) throw Object.assign(new Error('router.forwards: owner must be an extension id'), { status: 400 }); return String(owner); };
+    const pub = (e) => ({ port: e.port, protocol: e.protocol, label: e.label || '', owner: e.owner || null });
+    return {
+      list: () => svc.cfg.extra.map(pub),
+      owned: (owner) => svc.cfg.extra.filter((e) => e.owner === who(owner)).map(pub),
+      add: async (x, owner, { now = true } = {}) => {
+        const o = who(owner); const w = spec(x);
+        const other = svc.cfg.extra.find((e) => e.port === w.port && e.protocol === w.protocol && e.owner && e.owner !== o);
+        if (other) throw Object.assign(new Error(svc.t('Port {port} is already used by {other}.', { port: w.port, other: svc.extName(other.owner) })), { status: 409 });
+        // erst anlegen (Fehler sieht der Aufrufer), dann merken – ein von Hand gemerkter Eintrag geht an das Paket über
+        const res = now ? await svc.forward(w) : { port: w.port, protocol: w.protocol, client: null };
+        svc.cfg.extra = [...svc.cfg.extra.filter((e) => !(e.port === w.port && e.protocol === w.protocol)), { ...w, owner: o }];
+        svc.ctx.settings.save(); svc.cache = null;
+        return res;
+      },
+      remove: async (x, owner, { now = true } = {}) => {
+        const o = who(owner); const w = spec(x);
+        const mine = svc.cfg.extra.find((e) => e.port === w.port && e.protocol === w.protocol && e.owner === o);
+        if (!mine) return false;
+        svc.cfg.extra = svc.cfg.extra.filter((e) => e !== mine);
+        svc.ctx.settings.save(); svc.cache = null;
+        // Nur entfernen, wenn Hostwerk den Port nicht selbst braucht (öffentlicher Dienst) – sonst bleibt die Freigabe
+        if (now && !svc.wanted().some((e) => e.port === w.port && e.protocol === w.protocol)) await svc.unforward(w).catch(() => {});
+        return true;
+      },
+    };
   }
   /**
    * Where a wanted port comes from: an extension (port provider of Hostwerk's security service, e.g. game servers),
@@ -226,7 +278,7 @@ class RouterService {
   origins() {
     const out = new Map();
     const sec = this.ctx.security;
-    const nameOf = (id) => { try { const e = this.ctx.extMarket && this.ctx.extMarket.get(id); const n = e && (e.names ? (e.names.de || e.names.en) : e.name); return (n && typeof n === 'object' ? n.de || n.en : n) || id; } catch { return id; } };
+    const nameOf = (id) => this.extName(id);
     for (const [id, fn] of (sec && sec.portProviders) || []) {
       try { for (const p of [].concat(fn() || [])) if (p && Number.isInteger(p.port)) out.set(`${p.port}/${p.proto === 'UDP' ? 'UDP' : 'TCP'}`, { kind: 'extension', id, name: nameOf(id) }); } catch { /* ein Beitrag fällt aus */ }
     }

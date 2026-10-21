@@ -9,7 +9,7 @@
     "de": "Macht deine Server aus dem Internet erreichbar: Portfreigaben per UPnP/NAT-PMP oder direkt über FRITZ!Box (TR-064) und OpenWrt, IPv6 und DS-Lite, DynDNS – plus Geräte, WLAN, neue IP und Neustart deines Routers.",
     "en": "Makes your servers reachable from the internet: port forwarding via UPnP/NAT-PMP or directly through FRITZ!Box (TR-064) and OpenWrt, IPv6 and DS-Lite, DynDNS – plus devices, Wi-Fi, new IP and reboot of your router."
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "Hostwerk",
   "homepage": "https://github.com/Passimoritz/hostwerk-ext-router",
   "license": "MIT",

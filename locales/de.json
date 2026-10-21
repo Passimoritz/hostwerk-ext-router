@@ -192,6 +192,8 @@
   "Your router sits behind another router (double NAT, {ip}). Forwardings have to be set up on the front device as well.": "Dein Router hängt hinter einem weiteren Router (doppeltes NAT, {ip}). Freigaben müssen dann auch im vorderen Gerät eingerichtet werden.",
   "Router access: {msg}": "Router-Zugang: {msg}",
   "Invalid port": "Ungültiger Port",
+  "Protocol must be TCP or UDP.": "Protokoll muss TCP oder UDP sein.",
+  "Port {port} is already used by {other}.": "Port {port} nutzt schon {other}.",
   "No network connection found.": "Keine Netzwerkverbindung gefunden.",
   "No router with UPnP or NAT-PMP found – please set up the forwarding by hand in the router.": "Kein Router mit UPnP oder NAT-PMP gefunden – Freigabe bitte im Router von Hand einrichten.",
   "No router with UPnP or NAT-PMP found.": "Kein Router mit UPnP oder NAT-PMP gefunden.",

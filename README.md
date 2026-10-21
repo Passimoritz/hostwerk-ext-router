@@ -17,6 +17,7 @@ Makes your servers reachable from the internet: port forwarding via UPnP/NAT-PMP
 - Guest Wi-Fi with a QR code to join – print it and put it on the fridge
 - IPv6 and DS-Lite, DynDNS
 - “For friends on the internet” on every Minecraft server
+- Forwardings of other extensions (file share, Bedrock bridge …) with their owner – the automatic mode keeps them
 - Tab “Router” under Go live
 
 ## Install
@@ -38,6 +39,14 @@ node check.js . --strict             # same check as the catalogue (sdk/check.js
 ```
 
 Interface source in `ui/src`, server part in `server/`. Texts in the code are English, German is in `locales/de.json`.
+
+For other extensions (`host.use('router')` or `ctx.router`, check with `typeof router.forwards === 'object'` – since 1.2):
+
+```js
+await router.forwards.add({ port: 2022, protocol: 'TCP', label: 'SFTP' }, host.id);   // forwards now and remembers it
+await router.forwards.remove({ port: 2022, protocol: 'TCP' }, host.id);               // only own entries
+router.forwards.list();                                                                // [{ port, protocol, label, owner }]
+```
 
 ## License
 

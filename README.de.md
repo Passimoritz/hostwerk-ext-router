@@ -17,6 +17,7 @@ Macht deine Server aus dem Internet erreichbar: Portfreigaben über UPnP/NAT-PMP
 - Gast-WLAN mit QR-Code zum Beitreten – zum Ausdrucken und an den Kühlschrank
 - IPv6 und DS-Lite, DynDNS
 - „Für Freunde im Internet“ an jedem Minecraft-Server
+- Freigaben anderer Erweiterungen (Dateifreigabe, Bedrock-Brücke …) mit Besitzer – die Automatik behält sie
 - Reiter „Router“ unter Livebetrieb
 
 ## Installieren
@@ -38,6 +39,14 @@ node check.js . --strict             # Prüfung wie im Katalog (sdk/check.js)
 ```
 
 Quelltext der Oberfläche in `ui/src`, Server-Teil in `server/`. Texte im Code sind Englisch, Deutsch steht in `locales/de.json`.
+
+Für andere Erweiterungen (`host.use('router')` oder `ctx.router`, vorher `typeof router.forwards === 'object'` prüfen – ab 1.2):
+
+```js
+await router.forwards.add({ port: 2022, protocol: 'TCP', label: 'SFTP' }, host.id);   // gibt gleich frei und merkt es sich
+await router.forwards.remove({ port: 2022, protocol: 'TCP' }, host.id);               // nur eigene Einträge
+router.forwards.list();                                                                // [{ port, protocol, label, owner }]
+```
 
 ## Lizenz
 

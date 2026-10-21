@@ -1,3 +1,7 @@
+## 1.2.0
+
+- Public interface for other extensions: `router.forwards.add/remove/list/owned` with an owner (extension id). The automatic mode keeps these forwardings, the page shows the extension as their origin, a package only changes its own entries. File share and Bedrock bridge use it instead of writing the settings themselves. / Öffentliche Schnittstelle `router.forwards` mit Besitzer – die Automatik behält diese Freigaben, die Seite zeigt die Erweiterung als Herkunft.
+
 ## 1.1.0
 
 - "Reachable from outside?" per forwarding – a public port check (ifconfig.co) tries to connect, only on click and only TCP. / „Von außen erreichbar?“ je Freigabe.
