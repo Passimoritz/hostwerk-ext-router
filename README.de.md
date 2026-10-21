@@ -12,6 +12,9 @@ Macht deine Server aus dem Internet erreichbar: Portfreigaben über UPnP/NAT-PMP
 
 - Findet den Router selbst, gibt Ports mit einem Klick frei (UPnP/NAT-PMP)
 - FRITZ!Box (TR-064) und OpenWrt direkt – Geräte, WLAN, neue IP-Adresse und Neustart
+- MikroTik (RouterOS 7) und UniFi (UniFi OS) direkt – Freigaben und Geräte, bei UniFi auch WLAN
+- Jede Freigabe zeigt ihre Herkunft (Hostwerk, welche Erweiterung, von Hand, anderes Gerät) und lässt sich „von außen“ prüfen (öffentliche Port-Prüfung ifconfig.co, nur auf Klick)
+- Gast-WLAN mit QR-Code zum Beitreten – zum Ausdrucken und an den Kühlschrank
 - IPv6 und DS-Lite, DynDNS
 - „Für Freunde im Internet“ an jedem Minecraft-Server
 - Reiter „Router“ unter Livebetrieb

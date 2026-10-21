@@ -164,6 +164,13 @@ class Tr064 {
     return out;
   }
   async setWifi(index, enable) { await this.call(`WLANConfiguration:${Number(index)}`, 'SetEnable', { NewEnable: enable ? 1 : 0 }); return true; }
+  /** Name and password of a Wi-Fi network (for the QR code to join it). */
+  async wifiKey(index) {
+    const svc = `WLANConfiguration:${Number(index)}`;
+    const g = await this.get(svc, 'GetInfo');
+    const k = await this.get(svc, 'GetSecurityKeys').catch(() => ({}));
+    return { ssid: g.SSID || '', password: k.KeyPassphrase || '', security: g.BeaconType === 'None' ? 'nopass' : 'WPA' };
+  }
 
   /* Port forwardings over the router's internet connection */
   async mappings() {

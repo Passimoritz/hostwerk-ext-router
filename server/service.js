@@ -12,11 +12,28 @@
  * IPv6. This is detected; ports are opened for IPv6 as well (UPnP pinhole or OpenWrt rule, otherwise instructions) and DynDNS
  * keeps a fixed name on the changing address. Visitors without IPv6 can use the tunnel or ask the provider for public IPv4.
  *
+ * Router access (sign-in with the router user): TR-064 (FRITZ!Box & co.) and OpenWrt are found by themselves; MikroTik
+ * (RouterOS 7 REST) and UniFi (UniFi OS) are chosen by hand – then forwardings go directly through the router.
+ * Every forwarding says where it comes from (Hostwerk, which extension, added by hand, another device); "reachable from
+ * outside?" asks a public port check (ifconfig.co) – only when the user clicks.
+ *
  * Data stays where it always was: settings.router (forwardings, sign-in, DynDNS).
  */
 const R = require('./upnp');
 const TR = require('./tr064');
 const OW = require('./openwrt');
+const { MikroTik } = require('./mikrotik');
+const { UniFi } = require('./unifi');
+
+/** Router types with sign-in: found by themselves (tr064, openwrt) or chosen by hand (mikrotik, unifi). */
+const KINDS = ['tr064', 'openwrt', 'mikrotik', 'unifi'];
+const MANUAL = [{ kind: 'mikrotik', label: 'MikroTik (RouterOS 7)', user: 'admin' }, { kind: 'unifi', label: 'UniFi (UniFi OS)', user: '' }];
+/** Text of a Wi-Fi QR code (WIFI:T:WPA;S:name;P:password;;) – \ ; , : " are escaped as the format wants. */
+function wifiQrText({ ssid, password = '', security = 'WPA', hidden = false }) {
+  const e = (s) => String(s || '').replace(/([\\;,:"])/g, '\\$1');
+  const T = security === 'nopass' || !password ? 'nopass' : security === 'WEP' ? 'WEP' : 'WPA';
+  return `WIFI:T:${T};S:${e(ssid)};${T === 'nopass' ? '' : `P:${e(password)};`}${hidden ? 'H:true;' : ''};`;
+}
 
 const PREFIX = 'Hostwerk: ';
 const VENDOR_HINTS = [
@@ -130,6 +147,8 @@ class RouterService {
     const kinds = [];
     if (tr) kinds.push({ kind: 'tr064', base: tr.base, label: tr.model || 'TR-064', users: await new TR.Tr064({ base: tr.base }).users() });
     if (ow) kinds.push({ kind: 'openwrt', base: ow.base, label: 'OpenWrt', users: [{ name: 'root', last: true }] });
+    // Ohne eigene Suche: MikroTik und UniFi wählt man selbst (Adresse vorgeschlagen, änderbar)
+    for (const m of MANUAL) kinds.push({ kind: m.kind, base: `https://${g.gateway}`, label: m.label, manual: true, users: m.user ? [{ name: m.user, last: true }] : [] });
     return { gateway: g.gateway, kinds };
   }
   /** Signed-in driver or null. */
@@ -137,22 +156,30 @@ class RouterService {
     const l = this.cfg.login;
     if (!l || !l.base) return null;
     if (this.drv && this.drvSig === `${l.kind}|${l.base}|${l.user}|${l.pass}`) return this.drv;
-    const opts = { base: l.base, user: l.user || '', pass: this.secrets.open(l.pass || '') };
-    this.drv = l.kind === 'openwrt' ? new OW.OpenWrt(opts) : new TR.Tr064(opts);
+    const opts = { base: l.base, user: l.user || '', pass: this.secrets.open(l.pass || ''), insecure: !!l.insecure };
+    this.drv = RouterService.makeDriver(l.kind, opts);
     this.drvSig = `${l.kind}|${l.base}|${l.user}|${l.pass}`;
     return this.drv;
   }
-  async login({ kind, base, user, pass }) {
-    if (!['tr064', 'openwrt'].includes(kind) || !/^https?:\/\//.test(base || '')) throw new Error(this.t('Please choose the router type.'));
-    const opts = { base, user: String(user || '').trim(), pass: String(pass || '') };
+  static makeDriver(kind, opts) {
+    if (kind === 'openwrt') return new OW.OpenWrt(opts);
+    if (kind === 'mikrotik') return new MikroTik(opts);
+    if (kind === 'unifi') return new UniFi(opts);
+    return new TR.Tr064(opts);
+  }
+  async login({ kind, base, user, pass, insecure }) {
+    if (!KINDS.includes(kind) || !/^https?:\/\/[^\s/]+\/?$/.test(base || '')) throw new Error(this.t('Please choose the router type.'));
+    const opts = { base: String(base).replace(/\/$/, ''), user: String(user || '').trim(), pass: String(pass || ''), insecure: !!insecure };
     // Some routers (FRITZ!Box with "password only", OpenWrt) need no user name – then take the last used one or "root"
     if (!opts.user) {
       if (kind === 'openwrt') opts.user = 'root';
+      else if (kind === 'mikrotik') opts.user = 'admin';
+      else if (kind === 'unifi') throw new Error(this.t('UniFi needs the name of a local UniFi user.'));
       else { const users = await new TR.Tr064(opts).users().catch(() => []); opts.user = ((users.find((u) => u.last) || users[0]) || {}).name || ''; }
     }
-    const d = kind === 'openwrt' ? new OW.OpenWrt(opts) : new TR.Tr064(opts);
+    const d = RouterService.makeDriver(kind, opts);
     const info = await d.info(); // checks the sign-in
-    this.cfg.login = { kind, base, user: opts.user, pass: this.secrets.seal(opts.pass), model: info.model || null, at: Date.now() };
+    this.cfg.login = { kind, base: opts.base, user: opts.user, pass: this.secrets.seal(opts.pass), insecure: opts.insecure || undefined, model: info.model || null, at: Date.now() };
     this.ctx.settings.save();
     this.drv = null; this.cache = null;
     return this.loginStatus();
@@ -187,9 +214,38 @@ class RouterService {
 
   /** Ports that would be forwarded (public services + own entries). */
   wanted() {
-    const list = this.ctx.security ? this.ctx.security.publicPorts().map((p) => ({ port: p.port, protocol: p.proto === 'UDP' ? 'UDP' : 'TCP', label: p.label })) : [];
-    for (const x of this.cfg.extra) if (!list.some((p) => p.port === x.port && p.protocol === x.protocol)) list.push(x);
+    const origin = this.origins();
+    const list = this.ctx.security ? this.ctx.security.publicPorts().map((p) => { const protocol = p.proto === 'UDP' ? 'UDP' : 'TCP'; return { port: p.port, protocol, label: p.label, origin: origin.get(`${p.port}/${protocol}`) || { kind: 'hostwerk' } }; }) : [];
+    for (const x of this.cfg.extra) if (!list.some((p) => p.port === x.port && p.protocol === x.protocol)) list.push({ ...x, origin: { kind: 'manual' } });
     return list;
+  }
+  /**
+   * Where a wanted port comes from: an extension (port provider of Hostwerk's security service, e.g. game servers),
+   * the mail server, or Hostwerk itself. → Map "port/PROTO" → { kind: 'extension' | 'hostwerk', id, name }
+   */
+  origins() {
+    const out = new Map();
+    const sec = this.ctx.security;
+    const nameOf = (id) => { try { const e = this.ctx.extMarket && this.ctx.extMarket.get(id); const n = e && (e.names ? (e.names.de || e.names.en) : e.name); return (n && typeof n === 'object' ? n.de || n.en : n) || id; } catch { return id; } };
+    for (const [id, fn] of (sec && sec.portProviders) || []) {
+      try { for (const p of [].concat(fn() || [])) if (p && Number.isInteger(p.port)) out.set(`${p.port}/${p.proto === 'UDP' ? 'UDP' : 'TCP'}`, { kind: 'extension', id, name: nameOf(id) }); } catch { /* ein Beitrag fällt aus */ }
+    }
+    const ms = this.ctx.settings.get().mailserver;
+    if (ms && ms.public && ms.ports) for (const k of ['smtp', 'submission', 'submissions', 'imaps', 'pop3s', 'https']) if (ms.ports[k] && !out.has(`${ms.ports[k]}/TCP`)) out.set(`${ms.ports[k]}/TCP`, { kind: 'extension', id: 'mail-server', name: nameOf('mail-server') });
+    return out;
+  }
+
+  /**
+   * "Reachable from outside?" – a public port check (ifconfig.co) tries to connect to this connection's public address.
+   * Only TCP can be checked like this. → { port, reachable, ip } – sends nothing but the port number.
+   */
+  async reach(port, { fetchFn = fetch } = {}) {
+    const p = Number(port);
+    if (!Number.isInteger(p) || p < 1 || p > 65535) throw Object.assign(new Error(this.t('Invalid port')), { status: 400 });
+    const r = await fetchFn(`https://ifconfig.co/port/${p}`, { headers: { accept: 'application/json', 'user-agent': 'Hostwerk' }, signal: AbortSignal.timeout(15000) }).catch(() => null);
+    if (!r || !r.ok) throw Object.assign(new Error(this.t('The outside check (ifconfig.co) cannot be reached right now.')), { status: 502 });
+    const j = await r.json().catch(() => ({}));
+    return { port: p, reachable: !!j.reachable, ip: j.ip || null, at: Date.now() };
   }
 
   async status(force = false) {
@@ -235,6 +291,8 @@ class RouterService {
       w.state = !m ? 'missing' : m.internalClient === igd.localIp ? 'ok' : 'other';
       if (m && m.internalClient !== igd.localIp) w.other = m.internalClient;
     }
+    // Herkunft jeder Freigabe im Router: Hostwerks eigene wie gewünscht, fremde von einem anderen Gerät oder Programm
+    for (const m of out.mappings) { const w = out.wanted.find((x) => x.port === m.externalPort && x.protocol === m.protocol); m.origin = m.ours ? (w ? w.origin : { kind: 'hostwerk', stale: true }) : { kind: 'other' }; }
     return out;
   }
 
@@ -345,6 +403,17 @@ class RouterService {
     })));
     r.get('/router/devices', async (req, res) => res.json(await this.via((d) => d.hosts())));
     r.get('/router/wifi', async (req, res) => res.json(await this.via((d) => d.wifi())));
+    // QR-Code zum Beitreten (Gast-WLAN): Name und Passwort aus dem Router, wenn er sie herausgibt – sonst von Hand
+    r.get('/router/wifi/:index/key', async (req, res) => res.json(await this.via(async (d) => { if (!d.wifiKey) throw new Error(t('This router does not give out the Wi-Fi password – enter it by hand.')); return d.wifiKey(req.params.index); })));
+    r.post('/router/wifi-qr', async (req, res) => {
+      const b = req.body || {};
+      const ssid = String(b.ssid || '').slice(0, 64);
+      if (!ssid) throw Object.assign(new Error(t('The Wi-Fi needs a name.')), { status: 400 });
+      const text = wifiQrText({ ssid, password: String(b.password || '').slice(0, 64), security: b.security, hidden: !!b.hidden });
+      const svg = await this.host.lib('qrcode').toString(text, { type: 'svg', margin: 2, errorCorrectionLevel: 'M' });
+      res.json({ svg });
+    });
+    r.get('/router/reach/:port', async (req, res) => res.json(await this.reach(req.params.port)));
     r.put('/router/wifi/:index', async (req, res) => { await this.via((d) => d.setWifi(req.params.index, !!(req.body || {}).enabled)); res.json(await this.via((d) => d.wifi())); });
     r.post('/router/devices/:mac/wake', async (req, res) => { await this.via((d) => d.wake(req.params.mac)); res.json({ ok: true }); });
     r.put('/router/devices/:mac', async (req, res) => { await this.via((d) => d.rename(req.params.mac, String((req.body || {}).name || '').slice(0, 60))); res.json({ ok: true }); });
@@ -360,4 +429,4 @@ class RouterService {
   }
 }
 
-module.exports = { RouterService, PREFIX, VENDOR_HINTS };
+module.exports = { RouterService, PREFIX, VENDOR_HINTS, KINDS, wifiQrText };

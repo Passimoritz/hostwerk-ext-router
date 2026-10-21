@@ -231,13 +231,85 @@
   "The router requires the same internal and external port.": "Der Router verlangt gleiche interne und externe Ports.",
   "The router only supports permanent forwardings.": "Der Router unterstützt nur dauerhafte Freigaben.",
   "The router refuses forwardings for this port (often ports below 1024).": "Der Router verweigert Freigaben für diesen Port (oft Ports unter 1024).",
+  "Set up by the extension “{name}”": "Eingerichtet von der Erweiterung „{name}“",
+  "by hand": "von Hand",
+  "other device or program": "anderes Gerät oder Programm",
+  "Only TCP ports can be checked from outside.": "Von außen lassen sich nur TCP-Ports prüfen.",
+  "Checking …": "Wird geprüft …",
+  "Check failed": "Prüfung fehlgeschlagen",
+  "Checked at {ip}": "Geprüft an {ip}",
+  "reachable from outside": "von außen erreichbar",
+  "not reachable from outside": "von außen nicht erreichbar",
+  "Asks a public port check (ifconfig.co) to connect to port {port} of your public address.": "Bittet eine öffentliche Port-Prüfung (ifconfig.co), sich mit Port {port} deiner öffentlichen Adresse zu verbinden.",
+  "Reachable?": "Erreichbar?",
+  "From": "Herkunft",
+  "no longer needed": "wird nicht mehr gebraucht",
+  "RouterOS 7 with the www-ssl service (IP → Services). The user needs the policies “rest-api”, “read” and “write”.": "RouterOS 7 mit dem Dienst www-ssl (IP → Services). Der Benutzer braucht die Rechte „rest-api“, „read“ und „write“.",
+  "Address of the UniFi gateway (Dream Machine, Cloud Gateway …). A local UniFi user with the role “Site Admin” – not the Ubiquiti account with 2FA.": "Adresse des UniFi-Gateways (Dream Machine, Cloud Gateway …). Ein lokaler UniFi-Benutzer mit der Rolle „Site Admin“ – nicht das Ubiquiti-Konto mit 2FA.",
+  "Router has its own certificate (usual at home)": "Router hat ein eigenes Zertifikat (zu Hause üblich)",
+  "Empty = “admin”.": "Leer = „admin“.",
+  "Name of a local UniFi user.": "Name eines lokalen UniFi-Benutzers.",
+  "QR code for “{ssid}”": "QR-Code für „{ssid}“",
+  "Close": "Schließen",
+  "Print": "Drucken",
+  "Show QR code": "QR-Code zeigen",
+  "Reading the Wi-Fi details …": "WLAN-Daten werden gelesen …",
+  "Wi-Fi name": "WLAN-Name",
+  "Comes from the router where it gives it out – otherwise enter it here. Stays on this PC.": "Kommt aus dem Router, wenn er es herausgibt – sonst hier eintragen. Bleibt auf diesem PC.",
+  "Hide password": "Passwort verbergen",
+  "Show password": "Passwort zeigen",
+  "QR code to join the Wi-Fi “{ssid}”": "QR-Code zum Beitreten zum WLAN „{ssid}“",
+  "Guests point the phone camera at the code and join “{ssid}” – without typing the password.": "Gäste halten die Handykamera auf den Code und sind in „{ssid}“ – ohne das Passwort abzutippen.",
+  "Try again": "Erneut versuchen",
+  "This router does not manage Wi-Fi through Hostwerk.": "Dieser Router verwaltet sein WLAN nicht über Hostwerk.",
+  "QR code to join “{ssid}”": "QR-Code zum Beitreten zu „{ssid}“",
+  "UniFi needs the name of a local UniFi user.": "UniFi braucht den Namen eines lokalen UniFi-Benutzers.",
+  "The outside check (ifconfig.co) cannot be reached right now.": "Die Prüfung von außen (ifconfig.co) ist gerade nicht erreichbar.",
+  "This router does not give out the Wi-Fi password – enter it by hand.": "Dieser Router gibt das WLAN-Passwort nicht heraus – trag es von Hand ein.",
+  "The Wi-Fi needs a name.": "Das WLAN braucht einen Namen.",
+  "The router does not answer.": "Der Router antwortet nicht.",
+  "The router uses its own certificate – allow it at sign-in (\"Router has its own certificate\").": "Der Router nutzt ein eigenes Zertifikat – erlaube es bei der Anmeldung („Router hat ein eigenes Zertifikat“).",
+  "The router user lacks the right for this (needs the \"rest-api\" and \"write\" policies).": "Dem Router-Benutzer fehlt das Recht dafür (braucht die Rechte „rest-api“ und „write“).",
+  "Switch Wi-Fi on MikroTik in WinBox or WebFig.": "Das WLAN schaltest du bei MikroTik in WinBox oder WebFig.",
+  "On MikroTik reconnect the internet interface in WinBox or WebFig.": "Bei MikroTik verbindest du die Internet-Schnittstelle in WinBox oder WebFig neu.",
+  "On MikroTik rename devices as a comment of the DHCP lease (WinBox → IP → DHCP Server).": "Bei MikroTik benennst du Geräte als Kommentar der DHCP-Zuweisung um (WinBox → IP → DHCP Server).",
+  "The UniFi user lacks the right for this (needs the role \"Site Admin\" for Network).": "Dem UniFi-Benutzer fehlt das Recht dafür (braucht die Rolle „Site Admin“ für Network).",
+  "Restart the UniFi gateway in the UniFi app – it would also restart the whole network.": "Starte das UniFi-Gateway in der UniFi-App neu – es würde das ganze Netz mit neu starten.",
+  "On UniFi reconnect the internet in the UniFi app.": "Bei UniFi verbindest du das Internet in der UniFi-App neu.",
+  "Wake-on-LAN is not available through UniFi.": "Wake-on-LAN gibt es über UniFi nicht.",
+  "UniFi does not know this device yet.": "UniFi kennt dieses Gerät noch nicht.",
   "$patterns": [
-    ["The router answers with {}", "Router antwortet mit {}"],
-    ["The router does not know {}.", "Der Router kennt {} nicht."],
-    ["NAT-PMP error {}", "NAT-PMP-Fehler {}"],
-    ["ubus error {}", "ubus-Fehler {}"],
-    ["DynDNS ({})", "DynDNS ({})"],
-    ["Minecraft: {}", "Minecraft: {}"],
-    ["{} Mbit/s", "{} Mbit/s"]
+    [
+      "The router answers with {}",
+      "Router antwortet mit {}"
+    ],
+    [
+      "The router does not know {}.",
+      "Der Router kennt {} nicht."
+    ],
+    [
+      "NAT-PMP error {}",
+      "NAT-PMP-Fehler {}"
+    ],
+    [
+      "ubus error {}",
+      "ubus-Fehler {}"
+    ],
+    [
+      "DynDNS ({})",
+      "DynDNS ({})"
+    ],
+    [
+      "Minecraft: {}",
+      "Minecraft: {}"
+    ],
+    [
+      "{} Mbit/s",
+      "{} Mbit/s"
+    ],
+    [
+      "UniFi: {}",
+      "UniFi: {}"
+    ]
   ]
 }

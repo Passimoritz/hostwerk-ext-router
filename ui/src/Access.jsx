@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { KeyRound, LogOut, MonitorSmartphone, Wifi, Power, RefreshCw, Gauge, Zap, Search, Pencil, Router as RouterIcon, ShieldCheck } from 'lucide-react';
+import { KeyRound, LogOut, MonitorSmartphone, Wifi, Power, RefreshCw, Gauge, Zap, Search, Pencil, Router as RouterIcon, ShieldCheck, QrCode, Eye, EyeOff, Printer } from 'lucide-react';
 import { get, put, del, post, useApi } from '@hostwerk/api';
-import { Btn, Callout, Empty, Field, Loading, Seg, Switch, toast, confirmDialog, promptDialog } from '@hostwerk/ui';
+import { Btn, Callout, Empty, Field, Loading, Modal, Seg, Switch, toast, confirmDialog, promptDialog } from '@hostwerk/ui';
 import { t } from '@hostwerk/i18n';
 
 /*
  * Router access: sign in with the router user and manage the essentials – devices in the network (with Wake-on-LAN),
  * Wi-Fi/guest Wi-Fi, the line, new IP, reboot. Forwardings then go directly through the access (even if the router
- * forbids UPnP forwardings for this PC). TR-064 (FRITZ!Box and others), OpenWrt; other routers: UPnP + link to the router.
+ * forbids UPnP forwardings for this PC). TR-064 (FRITZ!Box and others) and OpenWrt are found by themselves, MikroTik
+ * (RouterOS 7) and UniFi are chosen by hand; other routers: UPnP + link to the router. Guest Wi-Fi with a QR code.
  */
 const fmtUp = (s) => (s > 86400 ? t('{d} d {h} h', { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600) }) : s > 3600 ? t('{h} h {m} min', { h: Math.floor(s / 3600), m: Math.floor((s % 3600) / 60) }) : t('{m} min', { m: Math.floor(s / 60) }));
 const mbit = (b) => (b ? `${Math.round(b / 1e6)} Mbit/s` : '–');
@@ -18,7 +19,10 @@ function Login({ det, onDone }) {
   const k = kinds.find((x) => x.kind === kind);
   const [user, setUser] = useState(() => ((k && k.users.find((u) => u.last)) || (k && k.users[0]) || {}).name || '');
   const [pass, setPass] = useState('');
+  const [base, setBase] = useState(k ? k.base : '');
+  const [insecure, setInsecure] = useState(true);
   const [busy, setBusy] = useState(false);
+  const pick = (id) => { const x = kinds.find((y) => y.kind === id); setKind(id); setBase(x ? x.base : ''); setUser(((x && x.users.find((u) => u.last)) || (x && x.users[0]) || {}).name || ''); };
   if (!kinds.length) {
     return (
       <Callout kind="info" title="This router cannot be managed directly">
@@ -29,21 +33,27 @@ function Login({ det, onDone }) {
   }
   const go = async () => {
     setBusy(true);
-    try { await put('/router/login', { kind, base: k.base, user, pass }); toast.success('Signed in – Hostwerk now manages your router'); onDone(); } catch (e) { toast.error(e); }
+    try { await put('/router/login', { kind, base: k.manual ? base : k.base, user, pass, insecure: k.manual ? insecure : false }); toast.success('Signed in – Hostwerk now manages your router'); onDone(); } catch (e) { toast.error(e); }
     setBusy(false);
   };
   return (
-    <div className="stack" style={{ gap: 10 }}>
+    <div className="stack router-gap-3">
       <div className="small muted">Sign in with your router user. The password is stored encrypted and only used for requests to the router.</div>
-      {kinds.length > 1 && <Seg value={kind} onChange={setKind} options={kinds.map((x) => ({ id: x.kind, label: x.label }))} />}
+      {kinds.length > 1 && <Seg value={kind} onChange={pick} options={kinds.map((x) => ({ id: x.kind, label: x.label }))} />}
+      {k && k.manual && (
+        <div className="form-grid">
+          <Field label="Router address" hint={kind === 'mikrotik' ? 'RouterOS 7 with the www-ssl service (IP → Services). The user needs the policies “rest-api”, “read” and “write”.' : 'Address of the UniFi gateway (Dream Machine, Cloud Gateway …). A local UniFi user with the role “Site Admin” – not the Ubiquiti account with 2FA.'}><input className="input mono" value={base} onChange={(e) => setBase(e.target.value)} placeholder="https://192.168.1.1" /></Field>
+          <label className="check small router-check"><input type="checkbox" checked={insecure} onChange={(e) => setInsecure(e.target.checked)} />Router has its own certificate (usual at home)</label>
+        </div>
+      )}
       <div className="form-grid">
-        <Field label="User (optional)" hint={kind === 'tr064' ? 'FRITZ!Box: the name from System → FRITZ!Box Users. Leave empty if your router only asks for a password – Hostwerk then takes the last used user.' : 'Empty = “root”.'}>
+        <Field label="User (optional)" hint={kind === 'tr064' ? 'FRITZ!Box: the name from System → FRITZ!Box Users. Leave empty if your router only asks for a password – Hostwerk then takes the last used user.' : kind === 'mikrotik' ? 'Empty = “admin”.' : kind === 'unifi' ? 'Name of a local UniFi user.' : 'Empty = “root”.'}>
           {k && k.users.length > 1 ? <select className="select" value={user} onChange={(e) => setUser(e.target.value)}>{k.users.map((u) => <option key={u.name} value={u.name}>{u.name}</option>)}</select>
             : <input className="input" value={user} onChange={(e) => setUser(e.target.value)} />}
         </Field>
         <Field label="Password"><input className="input" type="password" value={pass} autoComplete="current-password" onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && go()} /></Field>
       </div>
-      <div className="row-tight"><Btn className="primary" icon={KeyRound} busy={busy} disabled={!pass} onClick={go}>Sign in</Btn><span className="tiny muted">{k.label} · {k.base}</span></div>
+      <div className="row-tight"><Btn className="primary" icon={KeyRound} busy={busy} disabled={!pass} onClick={go}>Sign in</Btn><span className="tiny muted">{k.label} · {k.manual ? base : k.base}</span></div>
     </div>
   );
 }
@@ -84,10 +94,38 @@ function Devices() {
   );
 }
 
+/** QR code to join a Wi-Fi (for guests): name and password from the router if it gives them out – else by hand. */
+function WifiQr({ net, onClose }) {
+  const [f, setF] = useState({ ssid: net.ssid || '', password: '', security: 'WPA' });
+  const [show, setShow] = useState(false);
+  const [svg, setSvg] = useState(null);
+  const [busy, setBusy] = useState(true);
+  useEffect(() => { get(`/router/wifi/${encodeURIComponent(net.index)}/key`).then((k) => setF((x) => ({ ...x, ...k, ssid: k.ssid || x.ssid }))).catch(() => {}).finally(() => setBusy(false)); }, [net.index]);
+  const make = async () => { try { setSvg((await post('/router/wifi-qr', f)).svg); } catch (e) { toast.error(e); } };
+  return (
+    <Modal title={t('QR code for “{ssid}”', { ssid: net.ssid || t('(no name)') })} onClose={onClose} footer={<><Btn onClick={onClose}>Close</Btn>{svg && <Btn icon={Printer} onClick={() => { document.body.classList.add('router-printing'); window.print(); document.body.classList.remove('router-printing'); }}>Print</Btn>}<Btn className="primary" icon={QrCode} disabled={busy || !f.ssid} onClick={make}>Show QR code</Btn></>}>
+      <div className="stack">
+        {busy ? <Loading text="Reading the Wi-Fi details …" /> : (
+          <div className="form-grid">
+            <Field label="Wi-Fi name"><input className="input" value={f.ssid} onChange={(e) => setF({ ...f, ssid: e.target.value })} /></Field>
+            <Field label="Password" hint="Comes from the router where it gives it out – otherwise enter it here. Stays on this PC.">
+              <div className="row-tight"><input className="input grow" type={show ? 'text' : 'password'} autoComplete="off" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value, security: e.target.value ? 'WPA' : 'nopass' })} /><button type="button" className="btn ghost sm icon" title={show ? t('Hide password') : t('Show password')} aria-label={show ? t('Hide password') : t('Show password')} onClick={() => setShow((x) => !x)}>{show ? <EyeOff /> : <Eye />}</button></div>
+            </Field>
+          </div>
+        )}
+        {svg && <div className="router-qr" role="img" aria-label={t('QR code to join the Wi-Fi “{ssid}”', { ssid: f.ssid })} dangerouslySetInnerHTML={{ __html: svg }} />}
+        {svg && <div className="small muted router-qr-text">{t('Guests point the phone camera at the code and join “{ssid}” – without typing the password.', { ssid: f.ssid })}</div>}
+      </div>
+    </Modal>
+  );
+}
+
 function WifiList() {
   const w = useApi('/router/wifi', [], { live: false, poll: true });
   const [busy, setBusy] = useState(null);
-  if (w.error) return <Callout kind="warn">{w.error}</Callout>;
+  const [qr, setQr] = useState(null);
+  if (w.error) return <Callout kind="warn">{String(w.error.message || w.error)} <button type="button" className="link-btn" onClick={() => w.reload()}>{t('Try again')}</button></Callout>;
+  if (w.data && !w.data.length) return <div className="small muted">{t('This router does not manage Wi-Fi through Hostwerk.')}</div>;
   if (!w.data) return <Loading text="Loading Wi-Fi …" />;
   const band = (b) => (/^24|2\.4|2g/i.test(String(b)) ? t('2.4 GHz') : /^5|5g/i.test(String(b)) ? '5 GHz' : /^6|6g/i.test(String(b)) ? '6 GHz' : b);
   const set = async (x, v) => {
@@ -101,13 +139,15 @@ function WifiList() {
       {w.data.map((x) => (
         <div key={x.index} className={`router-wifi-item ${x.enabled ? 'on' : ''}`}>
           <Wifi size={18} />
-          <div className="grow" style={{ minWidth: 0 }}>
-            <div className="bold ellipsis">{x.ssid || t('(no name)')}{x.guest && <span className="badge accent" style={{ marginLeft: 6 }}>Guest</span>}</div>
+          <div className="grow router-min">
+            <div className="bold ellipsis">{x.ssid || t('(no name)')}{x.guest && <span className="badge accent router-gap">Guest</span>}</div>
             <div className="tiny muted">{[x.band && band(x.band), x.channel && t('channel {c}', { c: x.channel }), x.enabled ? t(x.clients === 1 ? '{n} device' : '{n} devices', { n: x.clients }) : t('off')].filter(Boolean).join(' · ')}</div>
           </div>
+          {x.enabled && <button type="button" className="btn ghost sm icon" title={t('QR code to join “{ssid}”', { ssid: x.ssid })} aria-label={t('QR code to join “{ssid}”', { ssid: x.ssid })} onClick={() => setQr(x)}><QrCode /></button>}
           <Switch checked={x.enabled} disabled={busy === x.index} onChange={(v) => set(x, v)} />
         </div>
       ))}
+      {qr && <WifiQr net={qr} onClose={() => setQr(null)} />}
     </div>
   );
 }
@@ -129,7 +169,7 @@ export default function RouterAccess({ onChange }) {
         {logged ? <span className="badge ok"><ShieldCheck size={11} /> {t('signed in as {user}', { user: a.user || '–' })}</span> : <span className="badge">Not signed in</span>}
         {logged && <div className="right row-tight"><Btn className="ghost sm" icon={LogOut} onClick={logout}>Sign out</Btn></div>}
       </div>
-      <div className="card-body stack" style={{ gap: 12 }}>
+      <div className="card-body stack router-gap-3">
         {!logged ? <Login det={det.data} onDone={() => { det.reload(); if (onChange) onChange(); }} /> : !m ? <Loading /> : m.error ? <Callout kind="warn" title="Sign-in no longer works">{m.error} <button type="button" className="link-btn" onClick={async () => { await del('/router/login'); det.reload(); }}>Sign in again</button></Callout> : (
           <>
             <div className="router-facts">
@@ -139,7 +179,7 @@ export default function RouterAccess({ onChange }) {
               {m.link && m.link.down > 0 && <div><span className="tiny muted"><Gauge size={11} /> {t('Line')}</span><b>↓ {mbit(m.link.down)}</b><span className="tiny muted">↑ {mbit(m.link.up)}</span></div>}
               {m.link && <div><span className="tiny muted">Public IP</span><b className="mono">{m.link.externalIp || '–'}</b></div>}
             </div>
-            <div className="row-tight" style={{ flexWrap: 'wrap', gap: 6 }}>
+            <div className="row-tight router-wrap">
               <Seg value={tab} onChange={setTab} options={[{ id: 'devices', label: 'Devices in the network', icon: MonitorSmartphone }, { id: 'wifi', label: 'Wi-Fi', icon: Wifi }]} />
               <div className="right row-tight">
                 <Btn className="ghost sm" icon={RefreshCw} onClick={reconnect}>Get a new IP</Btn>

@@ -65,6 +65,12 @@ class OpenWrt {
     await this.call('uci', 'apply', { rollback: false }).catch(() => {});
     if (config === 'wireless') await this.call('network.wireless', 'up').catch(() => {});
   }
+  /** Name and password of a Wi-Fi network (for the QR code to join it). */
+  async wifiKey(section) {
+    const r = await this.call('uci', 'get', { config: 'wireless', section: String(section) });
+    const v = r.values || {};
+    return { ssid: v.ssid || '', password: v.key || '', security: !v.encryption || v.encryption === 'none' ? 'nopass' : /wep/i.test(v.encryption) ? 'WEP' : 'WPA' };
+  }
   async setWifi(section, enable) { await this.call('uci', 'set', { config: 'wireless', section, values: { disabled: enable ? '0' : '1' } }); await this.apply('wireless'); return true; }
   async mappings() {
     const r = await this.call('uci', 'get', { config: 'firewall', type: 'redirect' });

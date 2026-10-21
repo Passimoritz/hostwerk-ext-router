@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, RefreshCw, Copy, ExternalLink, Wand2, Plus, Globe2, ListChecks, Trash2, Router as RouterIcon } from 'lucide-react';
+import { CheckCircle2, RefreshCw, Copy, ExternalLink, Wand2, Plus, Globe2, ListChecks, Trash2, Router as RouterIcon, Radar } from 'lucide-react';
 import { get, post, put, useApi, openExternal } from '@hostwerk/api';
 import { Btn, Callout, Field, InfoTip, Loading, Modal, Seg, SettingRow, Switch, toast, confirmDialog } from '@hostwerk/ui';
 import { t } from '@hostwerk/i18n';
@@ -12,6 +12,25 @@ import './style.css';
  * page, and the "for friends on the internet" button on every Minecraft server (slot "mc.connect").
  */
 const copy = (x) => navigator.clipboard.writeText(x).then(() => toast.success('Copied'));
+
+/** Where a forwarding comes from: Hostwerk, an extension (by name), added by hand or another device/program. */
+export function Origin({ o }) {
+  if (!o) return null;
+  if (o.kind === 'extension') return <span className="badge accent" title={t('Set up by the extension “{name}”', { name: o.name })}>{o.name}</span>;
+  if (o.kind === 'manual') return <span className="badge">{t('by hand')}</span>;
+  if (o.kind === 'other') return <span className="badge">{t('other device or program')}</span>;
+  return <span className="badge accent">Hostwerk</span>;
+}
+
+/** „Von außen erreichbar?“ – fragt eine öffentliche Port-Prüfung (nur TCP), erst auf Klick. */
+function ReachCheck({ port, protocol }) {
+  const [st, setSt] = useState(null);
+  if (protocol !== 'TCP') return <span className="tiny muted" title={t('Only TCP ports can be checked from outside.')}>UDP</span>;
+  if (st === 'busy') return <span className="tiny muted">{t('Checking …')}</span>;
+  if (st && st.error) return <button type="button" className="link-btn small c-err" onClick={() => setSt(null)}>{t('Check failed')}</button>;
+  if (st) return <span className={`badge ${st.reachable ? 'ok' : 'err'}`} title={st.ip ? t('Checked at {ip}', { ip: st.ip }) : ''}>{st.reachable ? t('reachable from outside') : t('not reachable from outside')}</span>;
+  return <button type="button" className="btn ghost xs" title={t('Asks a public port check (ifconfig.co) to connect to port {port} of your public address.', { port })} onClick={async () => { setSt('busy'); try { setSt(await get(`/router/reach/${port}`)); } catch (e) { setSt({ error: e.message }); } }}><Radar size={12} /> {t('Reachable?')}</button>;
+}
 
 export function RouterTab() {
   const r = useApi('/router');
@@ -52,7 +71,7 @@ export function RouterTab() {
             {d.kind ? <span className="badge ok">{d.kind === 'upnp' ? 'UPnP' : 'NAT-PMP'}</span> : d.gateway ? <span className="badge warn">No automatic forwardings</span> : null}
             <div className="right row-tight"><button type="button" className="btn ghost sm icon" title="Search again" aria-label="Search again" onClick={() => act('refresh', async () => r.setData(await get('/router?refresh=1')))}><RefreshCw /></button></div>
           </div>
-          <div className="card-body stack small" style={{ gap: 6 }}>
+          <div className="card-body stack small router-tight">
             {d.router && d.router.manufacturer && <div className="row"><span className="muted">Manufacturer</span><b>{d.router.manufacturer}</b></div>}
             <div className="row"><span className="muted">Router address</span><b className="mono">{d.gateway || '–'}</b></div>
             <div className="row"><span className="muted">This computer</span><b className="mono">{d.localIp || '–'}</b>{d.iface && <span className="tiny muted">{d.iface}</span>}</div>
@@ -63,7 +82,7 @@ export function RouterTab() {
         </div>
         <div className="card">
           <div className="card-head"><Wand2 size={16} /><h3>Forward automatically</h3></div>
-          <div className="card-body stack" style={{ gap: 10 }}>
+          <div className="card-body stack router-gap-3">
             <div className="small muted">Hostwerk forwards the ports of your public services (websites with a domain, Minecraft, mail server, remote access) in the router and keeps them up to date – also after new servers or changed ports.</div>
             <SettingRow title="Manage forwardings automatically" text="Checks every 30 minutes and after the start; cleans up Hostwerk forwardings that are no longer needed.">
               <Switch checked={d.auto} disabled={!ready} onChange={(v) => act('auto', async () => r.setData(await put('/router/settings', { auto: v })))} />
@@ -77,10 +96,11 @@ export function RouterTab() {
         <div className="card-head"><Globe2 size={16} /><h3>Hostwerk's ports</h3><span className="badge">{d.wanted.length}</span></div>
         {d.wanted.length === 0 ? <div className="card-body small muted">Nothing public yet – as soon as websites with a domain, Minecraft servers or remote access run, their ports show up here.</div> : d.wanted.map((w) => (
           <div key={w.protocol + w.port} className="list-item">
-            <span className="mono small" style={{ width: 90 }}>{w.port}/{w.protocol}</span>
-            <div className="grow small">{w.label}</div>
+            <span className="mono small router-port">{w.port}/{w.protocol}</span>
+            <div className="grow small row-tight router-wrap">{w.label}<Origin o={w.origin} /></div>
             {w.state === 'ok' ? <span className="badge ok">forwarded</span> : w.state === 'other' ? <span className="badge warn">{t('given to {ip}', { ip: w.other })}</span> : <span className="badge">not forwarded</span>}
             {w.state === 'missing' && ready && <Btn className="xs" busy={busy === `f-${w.port}`} onClick={() => act(`f-${w.port}`, async () => r.setData(await post('/router/forward', { port: w.port, protocol: w.protocol, label: w.label })))}>Forward</Btn>}
+            {w.state === 'ok' && <ReachCheck port={w.port} protocol={w.protocol} />}
           </div>
         ))}
       </div>
@@ -88,12 +108,13 @@ export function RouterTab() {
         <div className="card">
           <div className="card-head"><ListChecks size={16} /><h3>All forwardings in the router</h3><span className="badge">{d.mappings.length}</span></div>
           {d.mappings.length === 0 ? <div className="card-body small muted">No forwardings set up.</div> : (
-            <table className="table"><thead><tr><th>Port</th><th>to</th><th>Description</th><th /></tr></thead><tbody>
+            <table className="table"><thead><tr><th>Port</th><th>to</th><th>Description</th><th>From</th><th /></tr></thead><tbody>
               {d.mappings.map((m) => (
                 <tr key={m.protocol + m.externalPort}>
                   <td className="mono small">{m.externalPort}/{m.protocol}{m.internalPort !== m.externalPort ? ` → ${m.internalPort}` : ''}</td>
-                  <td className="mono small">{m.internalClient}{m.here && <span className="badge" style={{ marginLeft: 6 }}>this PC</span>}</td>
-                  <td className="small">{m.description}{m.ours && <span className="badge accent" style={{ marginLeft: 6 }}>Hostwerk</span>}</td>
+                  <td className="mono small">{m.internalClient}{m.here && <span className="badge router-gap">this PC</span>}</td>
+                  <td className="small">{m.description}</td>
+                  <td className="small"><Origin o={m.origin} />{m.origin && m.origin.stale ? <span className="tiny muted"> · {t('no longer needed')}</span> : null}</td>
                   <td className="actions">{(m.ours || m.here) && <Btn className="ghost xs icon" icon={Trash2} title="Remove" aria-label="Remove" busy={busy === `rm-${m.protocol}-${m.externalPort}`} onClick={() => unfwd(m)} />}</td>
                 </tr>
               ))}
@@ -108,7 +129,7 @@ export function RouterTab() {
             <Field label="Protocol"><Seg value={add.protocol} onChange={(v) => setAdd({ ...add, protocol: v })} options={[{ id: 'TCP', label: 'TCP' }, { id: 'UDP', label: 'UDP' }]} /></Field>
             <Field label="Label" className="span-2"><input className="input" placeholder="e.g. game server" value={add.label} onChange={(e) => setAdd({ ...add, label: e.target.value })} /></Field>
           </div>
-          <div className="tiny muted" style={{ marginTop: 8 }}>{t('The forwarding points to this PC ({ip}) and is kept by the automatic sync.', { ip: d.localIp })}</div>
+          <div className="tiny muted router-note">{t('The forwarding points to this PC ({ip}) and is kept by the automatic sync.', { ip: d.localIp })}</div>
         </Modal>
       )}
     </div>

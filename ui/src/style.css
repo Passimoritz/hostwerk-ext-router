@@ -1,11 +1,25 @@
-.router-ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
-.router-way { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.router-ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--sp-2); }
+.router-way { display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
 .router-way.on { border-color: color-mix(in srgb, var(--ok) 50%, var(--line)); background: color-mix(in srgb, var(--ok) 5%, var(--surface)); }
 .router-way .badge { align-self: flex-start; }
-.router-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.router-facts > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); min-width: 0; }
-.router-facts b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.router-wifi { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
-.router-wifi-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); }
+.router-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); }
+.router-facts > div { display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-lg); background: var(--surface-2); border: 1px solid var(--line); min-width: 0; }
+.router-facts b { font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.router-wifi { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--sp-2); }
+.router-wifi-item { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-xl); border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); }
 .router-wifi-item.on { color: var(--text); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
 .router-wifi-item.on > svg { color: var(--ok); }
+.router-wrap { flex-wrap: wrap; gap: var(--sp-2); }
+.router-gap { margin-left: var(--sp-2); }
+.router-gap-3 { gap: var(--sp-3); }
+.router-tight { gap: var(--sp-2); }
+.router-min { min-width: 0; }
+.router-port { width: 90px; flex: 0 0 auto; }
+.router-note { margin-top: var(--sp-2); }
+.router-check { align-self: end; min-height: 24px; }
+/* QR-Code: immer schwarz auf weiß – Kameras lesen ihn so am sichersten (in beiden Designs) */
+.router-qr { align-self: center; width: min(280px, 100%); padding: var(--sp-3); background: #fff; border-radius: var(--r-lg); /* hostwerk-allow: colors – QR-Code braucht festen Kontrast */ }
+.router-qr svg { display: block; width: 100%; height: auto; }
+.router-qr-text { text-align: center; }
+/* Drucken nur des QR-Codes – gilt nur, solange der Druck aus dem QR-Dialog kommt (Klasse am body) */
+@media print { body.router-printing * { visibility: hidden; } body.router-printing .router-qr, body.router-printing .router-qr *, body.router-printing .router-qr-text { visibility: visible; } }
