@@ -1,3 +1,8 @@
+## 1.3.1
+
+- Lives where it belongs: Go live → Make reachable → Router and the dashboard tile – no own sidebar entry any more (Hostwerk 3.0+); the full page stays under Extensions → Open and can be pinned in the sidebar settings. / Steckt jetzt dort, wo sie hingehört: Livebetrieb → Erreichbar machen → Router und Übersichtskachel – kein eigener Seitenleisten-Eintrag mehr (Hostwerk 3.0+); die ganze Seite bleibt unter Erweiterungen → Öffnen und lässt sich in den Seitenleisten-Einstellungen anheften.
+- The page is back in the manifest (with "nav": false) – “Open” works again in Extensions, the puzzle mark and Settings → Extensions; older Hostwerk versions show the sidebar entry again. / Die Seite steht wieder im Manifest (mit "nav": false) – „Öffnen“ geht wieder unter Erweiterungen, am Puzzle-Zeichen und in Einstellungen → Erweiterungen; ältere Hostwerk-Versionen zeigen den Seitenleisten-Eintrag wieder.
+
 ## 1.3.0
 
 - No own sidebar entry any more: the router lives in Go live (Make reachable → Router), plus a dashboard tile; the full page stays reachable from Extensions → Open. / Kein eigener Seitenleisten-Eintrag mehr: Router im Livebetrieb (Erreichbar machen → Router) plus Übersichtskachel; die volle Seite bleibt über Erweiterungen → Öffnen erreichbar.

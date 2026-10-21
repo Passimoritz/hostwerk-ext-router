@@ -10,6 +10,7 @@ Macht deine Server aus dem Internet erreichbar: Portfreigaben über UPnP/NAT-PMP
 
 ## Was sie kann
 
+- **Wo:** Livebetrieb → Erreichbar machen → Router und Übersichtskachel – seit 1.3.1 ohne eigenen Seitenleisten-Eintrag; die ganze Seite bleibt unter Erweiterungen → Öffnen
 - Findet den Router selbst, gibt Ports mit einem Klick frei (UPnP/NAT-PMP)
 - FRITZ!Box (TR-064) und OpenWrt direkt – Geräte, WLAN, neue IP-Adresse und Neustart
 - MikroTik (RouterOS 7) und UniFi (UniFi OS) direkt – Freigaben und Geräte, bei UniFi auch WLAN

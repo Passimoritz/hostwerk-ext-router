@@ -10,6 +10,7 @@ Makes your servers reachable from the internet: port forwarding via UPnP/NAT-PMP
 
 ## What it does
 
+- **Where:** Go live → Make reachable → Router and the dashboard tile – no own sidebar entry since 1.3.1; the full page stays under Extensions → Open
 - Finds the router by itself, forwards ports with one click (UPnP/NAT-PMP)
 - FRITZ!Box (TR-064) and OpenWrt directly – devices, Wi-Fi, new IP address and reboot
 - MikroTik (RouterOS 7) and UniFi (UniFi OS) directly – forwardings and devices, on UniFi also Wi-Fi
