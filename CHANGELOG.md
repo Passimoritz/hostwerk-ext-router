@@ -1,3 +1,8 @@
+## 1.3.2
+
+- German texts use Hostwerk’s words: “Passwort” instead of “Kennwort”, “Router-Anmeldung” instead of “Router-Login”. / Deutsche Texte mit Hostwerks Wörtern: „Passwort“ statt „Kennwort“, „Router-Anmeldung“ statt „Router-Login“.
+- No forwardings yet: Hostwerk’s empty tile instead of a grey sentence. / Noch keine Freigaben: Hostwerks Leer-Kachel statt eines grauen Satzes.
+
 ## 1.3.1
 
 - Lives where it belongs: Go live → Make reachable → Router and the dashboard tile – no own sidebar entry any more (Hostwerk 3.0+); the full page stays under Extensions → Open and can be pinned in the sidebar settings. / Steckt jetzt dort, wo sie hingehört: Livebetrieb → Erreichbar machen → Router und Übersichtskachel – kein eigener Seitenleisten-Eintrag mehr (Hostwerk 3.0+); die ganze Seite bleibt unter Erweiterungen → Öffnen und lässt sich in den Seitenleisten-Einstellungen anheften.

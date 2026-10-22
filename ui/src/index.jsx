@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, RefreshCw, Copy, ExternalLink, Wand2, Plus, Globe2, ListChecks, Trash2, Router as RouterIcon, Radar } from 'lucide-react';
 import { get, post, put, useApi, openExternal } from '@hostwerk/api';
-import { Btn, Callout, Field, InfoTip, Loading, Modal, Seg, SettingRow, Switch, toast, confirmDialog } from '@hostwerk/ui';
+import { Btn, Callout, Field, InfoTip, Loading, Modal, Seg, SettingRow, Switch, toast, confirmDialog, TileEmpty } from '@hostwerk/ui';
 import { t } from '@hostwerk/i18n';
 import RouterAccess from './Access';
 import RouterV6 from './V6';
@@ -97,7 +97,7 @@ export function RouterTab() {
       </div>
       <div className="card">
         <div className="card-head"><Globe2 size={16} /><h3>Hostwerk's ports</h3><span className="badge">{d.wanted.length}</span></div>
-        {d.wanted.length === 0 ? <div className="card-body small muted">Nothing public yet – as soon as websites with a domain, Minecraft servers or remote access run, their ports show up here.</div> : d.wanted.map((w) => (
+        {d.wanted.length === 0 ? <TileEmpty text="Nothing public yet – as soon as websites with a domain, Minecraft servers or remote access run, their ports show up here." /> : d.wanted.map((w) => (
           <div key={w.protocol + w.port} className="list-item">
             <span className="mono small router-port">{w.port}/{w.protocol}</span>
             <div className="grow small row-tight router-wrap">{w.label}<Origin o={w.origin} /></div>
@@ -110,7 +110,7 @@ export function RouterTab() {
       {(d.kind === 'upnp' || d.mappingsVia === 'login') && (
         <div className="card">
           <div className="card-head"><ListChecks size={16} /><h3>All forwardings in the router</h3><span className="badge">{d.mappings.length}</span></div>
-          {d.mappings.length === 0 ? <div className="card-body small muted">No forwardings set up.</div> : (
+          {d.mappings.length === 0 ? <TileEmpty text="No forwardings set up." /> : (
             <table className="table"><thead><tr><th>Port</th><th>to</th><th>Description</th><th>Set up by</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>
               {d.mappings.map((m) => (
                 <tr key={m.protocol + m.externalPort}>
