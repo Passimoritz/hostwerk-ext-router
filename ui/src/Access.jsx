@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyRound, LogOut, MonitorSmartphone, Wifi, Power, RefreshCw, Gauge, Zap, Search, Pencil, Router as RouterIcon, ShieldCheck, QrCode, Eye, EyeOff, Printer } from 'lucide-react';
 import { get, put, del, post, useApi } from '@hostwerk/api';
-import { Btn, Callout, Empty, Field, Loading, Modal, Seg, Switch, toast, confirmDialog, promptDialog } from '@hostwerk/ui';
+import { Btn, Callout, Empty, Field, InfoTip, Loading, Modal, Seg, Switch, toast, confirmDialog, promptDialog } from '@hostwerk/ui';
 import { t } from '@hostwerk/i18n';
 
 /*
@@ -156,10 +156,29 @@ export default function RouterAccess({ onChange }) {
   const det = useApi('/router/detect', [], { live: false });
   const [tab, setTab] = useState('devices');
   const [m, setM] = useState(null);
+  const [signIn, setSignIn] = useState(false);
   const logged = det.data && det.data.access && det.data.access.loggedIn;
   useEffect(() => { if (logged) get('/router/manage').then(setM).catch((e) => setM({ error: e.message })); }, [logged]);
   if (!det.data) return <div className="card"><div className="card-body"><Loading text="Checking router access …" /></div></div>;
   const a = det.data.access;
+  // Nicht angemeldet: eine Statuszeile ganz oben, die Anmeldung selbst im Dialog – so steht „Anmelden“ immer im Bild
+  if (!logged) {
+    const can = (det.data.kinds || []).length > 0;
+    return (
+      <div className="card router-bar">
+        <KeyRound size={16} aria-hidden="true" />
+        <b>Router access</b>
+        <span className="badge">Not signed in</span>
+        <span className="tiny muted grow ellipsis">{can ? t('Sign in to manage devices, Wi-Fi and forwardings directly.') : t('This router cannot be managed directly')}</span>
+        {can ? <Btn className="primary sm" icon={KeyRound} onClick={() => setSignIn(true)}>Sign in …</Btn> : <InfoTip pop title="This router cannot be managed directly">{det.data.gateway ? t('Hostwerk can sign in to FRITZ!Box routers (and others with TR-064) and OpenWrt. Your router uses UPnP for forwardings – everything else is in the router interface at http://{gw}/.', { gw: det.data.gateway }) : t('Hostwerk can sign in to FRITZ!Box routers (and others with TR-064) and OpenWrt. Your router uses UPnP for forwardings.')}{' '}{t('FRITZ!Box: under Home Network → Network → Network Settings switch on "Allow access for applications", then search again here.')}</InfoTip>}
+        {signIn && (
+          <Modal title="Sign in to the router" onClose={() => setSignIn(false)}>
+            <Login det={det.data} onDone={() => { setSignIn(false); det.reload(); if (onChange) onChange(); }} />
+          </Modal>
+        )}
+      </div>
+    );
+  }
   const logout = async () => { if (!(await confirmDialog({ title: 'Sign out of the router?', text: 'Hostwerk forgets user and password. Forwardings then go through UPnP again.', confirm: 'Sign out' }))) return; await del('/router/login'); setM(null); det.reload(); if (onChange) onChange(); };
   const reboot = async () => { if (!(await confirmDialog({ title: 'Restart the router?', text: 'Internet and Wi-Fi are gone for 2–4 minutes – for everyone in the house.', confirm: 'Restart', danger: true }))) return; try { await post('/router/reboot'); toast('The router is restarting …'); } catch (e) { toast.error(e); } };
   const reconnect = async () => { if (!(await confirmDialog({ title: 'Reconnect?', text: 'The internet connection drops briefly – usually you get a new public IP afterwards.', confirm: 'Reconnect' }))) return; try { await post('/router/reconnect'); toast('Reconnecting …'); setTimeout(() => { get('/router/manage').then(setM).catch(() => {}); if (onChange) onChange(); }, 8000); } catch (e) { toast.error(e); } };
@@ -170,7 +189,7 @@ export default function RouterAccess({ onChange }) {
         {logged && <div className="right row-tight"><Btn className="ghost sm" icon={LogOut} onClick={logout}>Sign out</Btn></div>}
       </div>
       <div className="card-body stack router-gap-3">
-        {!logged ? <Login det={det.data} onDone={() => { det.reload(); if (onChange) onChange(); }} /> : !m ? <Loading /> : m.error ? <Callout kind="warn" title="Sign-in no longer works">{m.error} <button type="button" className="link-btn" onClick={async () => { await del('/router/login'); det.reload(); }}>Sign in again</button></Callout> : (
+        {!m ? <Loading /> : m.error ? <Callout kind="warn" title="Sign-in no longer works">{m.error} <button type="button" className="link-btn" onClick={async () => { await del('/router/login'); det.reload(); }}>Sign in again</button></Callout> : (
           <>
             <div className="router-facts">
               <div><span className="tiny muted">Model</span><b>{m.info.model}</b><span className="tiny muted">{m.info.firmware}</span></div>

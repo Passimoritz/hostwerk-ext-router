@@ -34,26 +34,26 @@ export function RouterOverview({ d, setData }) {
   const stuck = d.reachability === 'cgnat' || d.reachability === 'double';
   return (
     <div className="stack">
-      <div className="router-overview" role="group" aria-label={t('Router at a glance')}>
-        <div className="router-ov-tile">
-          <span className="tiny muted row-tight"><RouterIcon size={14} aria-hidden="true" />Router</span>
-          <b className="ellipsis">{d.router ? d.router.model || d.router.name : t('not found')}</b>
-          <span className={`tiny ${d.upnp && (d.upnp.state === 'off' || d.upnp.state === 'limited') ? 'c-warn' : 'muted'}`}>{d.access && d.access.loggedIn ? t('signed in · {u}', { u: t(UPNP[d.upnp ? d.upnp.state : 'none']) }) : t(UPNP[d.upnp ? d.upnp.state : 'none'])}</span>
+      <div className="grid grid-4 router-overview" role="group" aria-label={t('Router at a glance')}>
+        <div className="card stat">
+          <div className="k"><RouterIcon aria-hidden="true" />Router</div>
+          <div className="v text ellipsis">{d.router ? d.router.model || d.router.name : t('not found')}</div>
+          <div className={`s ${d.upnp && (d.upnp.state === 'off' || d.upnp.state === 'limited') ? 'c-warn' : ''}`}>{d.access && d.access.loggedIn ? t('signed in · {u}', { u: t(UPNP[d.upnp ? d.upnp.state : 'none']) }) : t(UPNP[d.upnp ? d.upnp.state : 'none'])}</div>
         </div>
-        <div className="router-ov-tile">
-          <span className="tiny muted row-tight"><ListChecks size={14} aria-hidden="true" />Forwardings</span>
-          <b>{t('{ok} of {all}', { ok, all: d.wanted.length })}</b>
-          <span className={`tiny ${d.conflicts && d.conflicts.length ? 'c-warn' : 'muted'}`}>{d.conflicts && d.conflicts.length ? pl(d.conflicts.length, '{n} conflict', '{n} conflicts') : t('no conflicts')}</span>
+        <div className="card stat">
+          <div className="k"><ListChecks aria-hidden="true" />Forwardings</div>
+          <div className="v">{ok}<span className="of"> / {d.wanted.length}</span></div>
+          <div className={`s ${d.conflicts && d.conflicts.length ? 'c-warn' : ''}`}>{d.conflicts && d.conflicts.length ? pl(d.conflicts.length, '{n} conflict', '{n} conflicts') : t('no conflicts')}</div>
         </div>
-        <div className="router-ov-tile">
-          <span className="tiny muted row-tight"><Radar size={14} aria-hidden="true" />Reachable from outside</span>
-          <b className={o && o.reachable === false ? 'c-err' : o && o.reachable ? 'c-ok' : ''}>{outsideText(o)}</b>
-          <span className="row-tight tiny muted">{o ? new Date(o.at).toLocaleString() : ''}<Btn className="xs ghost" busy={busy} disabled={!ok} title={ok ? 'A public port check (ifconfig.co) tries every forwarded TCP port – only the port numbers go out.' : 'Nothing forwarded yet'} onClick={check}>Check now</Btn></span>
+        <div className="card stat">
+          <div className="k"><Radar aria-hidden="true" />Reachable from outside</div>
+          <div className={`v text ${o && o.reachable === false ? 'c-err' : o && o.reachable ? 'c-ok' : ''}`}>{outsideText(o)}</div>
+          <div className="s row-tight">{o ? new Date(o.at).toLocaleString() : ''}<Btn className="xs ghost" busy={busy} disabled={!ok} title={ok ? 'A public port check (ifconfig.co) tries every forwarded TCP port – only the port numbers go out.' : 'Nothing forwarded yet'} onClick={check}>Check now</Btn></div>
         </div>
-        <div className="router-ov-tile">
-          <span className="tiny muted row-tight"><Globe2 size={14} aria-hidden="true" />Public address</span>
-          <span className="row-tight router-min"><code className="ellipsis">{d.externalIp || (d.net && d.net.v4public) || t('no IPv4')}</code>{(d.externalIp || (d.net && d.net.v4public)) && <button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy IPv4" onClick={() => copy(d.externalIp || d.net.v4public)}><Copy /></button>}</span>
-          <span className="row-tight router-min"><code className="ellipsis tiny">{v6 || t('no IPv6')}</code>{v6 && <button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy IPv6" onClick={() => copy(v6)}><Copy /></button>}</span>
+        <div className="card stat">
+          <div className="k"><Globe2 aria-hidden="true" />Public address</div>
+          <div className="v text row-tight router-min"><code className="ellipsis">{d.externalIp || (d.net && d.net.v4public) || t('no IPv4')}</code>{(d.externalIp || (d.net && d.net.v4public)) && <button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy IPv4" onClick={() => copy(d.externalIp || d.net.v4public)}><Copy /></button>}</div>
+          <div className="s row-tight router-min"><code className="ellipsis">{v6 || t('no IPv6')}</code>{v6 && <button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy IPv6" onClick={() => copy(v6)}><Copy /></button>}</div>
         </div>
       </div>
       {open && o && o.results.length > 0 && (

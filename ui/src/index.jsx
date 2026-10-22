@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, RefreshCw, Copy, ExternalLink, Wand2, Plus, Globe2, ListChecks, Trash2, Router as RouterIcon, Radar } from 'lucide-react';
+import { CheckCircle2, RefreshCw, Copy, ExternalLink, Wand2, Plus, Globe2, ListChecks, Trash2, Router as RouterIcon, Radar, Network } from 'lucide-react';
 import { get, post, put, useApi, openExternal } from '@hostwerk/api';
-import { Btn, Callout, Field, InfoTip, Loading, Modal, Seg, SettingRow, Switch, toast, confirmDialog, TileEmpty } from '@hostwerk/ui';
+import { Btn, Callout, Field, InfoTip, Loading, Modal, Seg, Switch, toast, confirmDialog, TileEmpty } from '@hostwerk/ui';
 import { t } from '@hostwerk/i18n';
 import RouterAccess from './Access';
 import RouterV6 from './V6';
@@ -38,10 +38,13 @@ export function RouterTab() {
   const r = useApi('/router');
   const [busy, setBusy] = useState(null);
   const [add, setAdd] = useState(null);
+  const [details, setDetails] = useState(false);
+  const [list, setList] = useState('ours');
   if (!r.data) return <Loading text="Looking for the router …" />;
   const d = r.data;
   // Forwarding works through UPnP/NAT-PMP or – after signing in – directly through the router access
   const logged = !!(d.access && d.access.loggedIn);
+  const showAll = d.kind === 'upnp' || d.mappingsVia === 'login';
   const ready = !!d.kind || logged;
   const act = async (key, fn) => { setBusy(key); try { await fn(); } catch (e) { toast.error(e); } setBusy(null); };
   const sync = () => act('sync', async () => {
@@ -58,46 +61,45 @@ export function RouterTab() {
     { id: 'login', label: logged ? t('Router login ({model})', { model: (d.access && d.access.model) || d.access.kind }) : t('Router login'), on: logged, text: logged ? 'Forwardings directly through the router access' : 'FRITZ!Box (TR-064) and OpenWrt – sign in below' },
     { id: 'manual', label: 'By hand', on: !ready, text: ready ? 'not needed' : 'Enter the ports in the router interface' },
   ];
+  // Aufbau ohne Scrollen: Anmelden ganz oben (Statuszeile), Überblick als Kennzahlen, eine Karte „Automatisch freigeben“
+  // (mit den Wegen als Chips), Ports und Router-Freigaben in einer Karte mit Umschalter; Anschluss-Details im Dialog
   return (
-    <div className="stack">
+    <div className="stack router-page">
+      {!logged && <RouterAccess onChange={() => r.reload()} />}
       {d.direct && !d.kind && <InfoTip title="No router needed" icon={CheckCircle2}>{t('This computer has a public address directly ({ip}) – typical for rented servers in a data centre. Ports only have to be open in the firewall (tab “Security”).', { ip: d.localIp })}</InfoTip>}
       <RouterOverview d={d} setData={r.setData} />
       {d.problems.map((p) => <Callout key={p} kind="warn">{p}</Callout>)}
-      <div className="router-ways">
-        {ways.map((w) => <div key={w.id} className={`router-way ${w.on ? 'on' : ''}`}><span className={`badge ${w.on ? 'ok' : ''}`}>{w.on ? t('active') : t('off')}</span><b className="small">{w.label}</b><span className="tiny muted">{w.text}</span></div>)}
-      </div>
-      <RouterAccess onChange={() => r.reload()} />
-      {d.ipv6 && <RouterV6 d={d} setData={r.setData} />}
-      <div className="grid grid-2">
-        <div className="card">
-          <div className="card-head"><RouterIcon size={16} /><h3>{d.router ? d.router.model || d.router.name : t('Router')}</h3>
-            {d.kind ? <span className="badge ok">{d.kind === 'upnp' ? 'UPnP' : 'NAT-PMP'}</span> : d.gateway ? <span className="badge warn">No automatic forwardings</span> : null}
-            <div className="right row-tight"><button type="button" className="btn ghost sm icon" title="Search again" aria-label="Search again" onClick={() => act('refresh', async () => r.setData(await get('/router?refresh=1')))}><RefreshCw /></button></div>
-          </div>
-          <div className="card-body stack small router-tight">
-            {d.router && d.router.manufacturer && <div className="row"><span className="muted">Manufacturer</span><b>{d.router.manufacturer}</b></div>}
-            <div className="row"><span className="muted">Router address</span><b className="mono">{d.gateway || '–'}</b></div>
-            <div className="row"><span className="muted">This computer</span><b className="mono">{d.localIp || '–'}</b>{d.iface && <span className="tiny muted">{d.iface}</span>}</div>
-            <div className="row"><span className="muted">Public address</span><b className="mono">{d.externalIp || '–'}</b>{d.externalIp && <button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy" onClick={() => copy(d.externalIp)}><Copy /></button>}</div>
-            {d.connection && <div className="row"><span className="muted">Internet</span><b>{d.connection === 'Connected' ? t('connected') : d.connection}</b></div>}
-            {d.router && d.router.web && <div><button type="button" className="btn sm" onClick={() => openExternal(d.router.web)}><ExternalLink size={14} />{t('Open the router interface')}</button></div>}
+      <div className="card">
+        <div className="card-head"><Wand2 size={16} /><h3>Forward automatically</h3>
+          {d.kind ? <span className="badge ok">{d.kind === 'upnp' ? 'UPnP' : 'NAT-PMP'}</span> : logged ? <span className="badge ok">{t('Router login')}</span> : d.gateway ? <span className="badge warn">No automatic forwardings</span> : null}
+          <InfoTip pop title="Forward automatically">Hostwerk forwards the ports of your public services (websites with a domain, Minecraft, mail server, remote access) in the router and keeps them up to date – also after new servers or changed ports.</InfoTip>
+          <div className="right row-tight">
+            <Btn className="ghost sm" icon={Network} onClick={() => setDetails(true)}>Connection details …</Btn>
+            <button type="button" className="btn ghost sm icon" title="Search again" aria-label="Search again" onClick={() => act('refresh', async () => r.setData(await get('/router?refresh=1')))}><RefreshCw /></button>
           </div>
         </div>
-        <div className="card">
-          <div className="card-head"><Wand2 size={16} /><h3>Forward automatically</h3></div>
-          <div className="card-body stack router-gap-3">
-            <div className="small muted">Hostwerk forwards the ports of your public services (websites with a domain, Minecraft, mail server, remote access) in the router and keeps them up to date – also after new servers or changed ports.</div>
-            <SettingRow title="Manage forwardings automatically" text="Checks every 30 minutes and after the start; cleans up Hostwerk forwardings that are no longer needed.">
-              <Switch checked={d.auto} disabled={!ready} onChange={(v) => act('auto', async () => r.setData(await put('/router/settings', { auto: v })))} />
-            </SettingRow>
-            <div className="row-tight"><Btn className="primary sm" icon={Wand2} busy={busy === 'sync'} disabled={!ready} onClick={sync}>Sync now</Btn><Btn className="sm" icon={Plus} disabled={!ready} onClick={() => setAdd({ port: '', protocol: 'TCP', label: '' })}>Own forwarding</Btn></div>
-            {d.hint && !logged && <Callout kind="info" title={t('Tip for {vendor}', { vendor: d.hint.vendor })}>{d.hint.text}{d.hint.web && <> <button type="button" className="link-btn" onClick={() => openExternal(d.hint.web)}>{t('Open router')}</button></>}</Callout>}
+        <div className="card-body">
+          <div className="row-tight router-wrap">
+            <Switch checked={d.auto} disabled={!ready} label="Manage forwardings automatically" onChange={(v) => act('auto', async () => r.setData(await put('/router/settings', { auto: v })))} />
+            <span className="small">Manage forwardings automatically</span>
+            <InfoTip pop title="Manage forwardings automatically">Checks every 30 minutes and after the start; cleans up Hostwerk forwardings that are no longer needed.</InfoTip>
+            <span className="router-sep" aria-hidden="true" />
+            <Btn className="primary sm" icon={Wand2} busy={busy === 'sync'} disabled={!ready} onClick={sync}>Sync now</Btn>
+            <Btn className="sm" icon={Plus} disabled={!ready} onClick={() => setAdd({ port: '', protocol: 'TCP', label: '' })}>Own forwarding</Btn>
+            {d.router && d.router.web && <Btn className="ghost sm" icon={ExternalLink} onClick={() => openExternal(d.router.web)}>Open the router interface</Btn>}
+            <span className="grow" />
+            <span className="row-tight router-wrap" role="list" aria-label={t('Ways to forward')}>
+              {ways.map((w) => <span key={w.id} role="listitem" className={`chip router-way ${w.on ? 'on' : ''}`} title={`${w.label}: ${t(w.text)}`}>{w.on ? <CheckCircle2 size={12} aria-hidden="true" /> : null}{w.label}<span className="sr-only"> – {w.on ? t('active') : t('off')}</span></span>)}
+            </span>
+            {d.hint && !logged && <InfoTip pop title={t('Tip for {vendor}', { vendor: d.hint.vendor })}>{d.hint.text}{d.hint.web && <> <button type="button" className="link-btn" onClick={() => openExternal(d.hint.web)}>{t('Open router')}</button></>}</InfoTip>}
           </div>
         </div>
       </div>
       <div className="card">
-        <div className="card-head"><Globe2 size={16} /><h3>Hostwerk's ports</h3><span className="badge">{d.wanted.length}</span></div>
-        {d.wanted.length === 0 ? <TileEmpty text="Nothing public yet – as soon as websites with a domain, Minecraft servers or remote access run, their ports show up here." /> : d.wanted.map((w) => (
+        <div className="card-head">{list === 'router' ? <ListChecks size={16} /> : <Globe2 size={16} />}<h3>{list === 'router' ? t('All forwardings in the router') : t("Hostwerk's ports")}</h3><span className="badge">{list === 'router' ? d.mappings.length : d.wanted.length}</span>
+          {showAll && <div className="right"><Seg value={list} onChange={setList} options={[{ id: 'ours', label: "Hostwerk's ports" }, { id: 'router', label: 'All in the router' }]} /></div>}
+        </div>
+        {list !== 'router' ? (d.wanted.length === 0 ? <TileEmpty text="Nothing public yet – as soon as websites with a domain, Minecraft servers or remote access run, their ports show up here." /> : d.wanted.map((w) => (
           <div key={w.protocol + w.port} className="list-item">
             <span className="mono small router-port">{w.port}/{w.protocol}</span>
             <div className="grow small row-tight router-wrap">{w.label}<Origin o={w.origin} /></div>
@@ -105,25 +107,35 @@ export function RouterTab() {
             {w.state === 'missing' && ready && <Btn className="xs" busy={busy === `f-${w.port}`} onClick={() => act(`f-${w.port}`, async () => r.setData(await post('/router/forward', { port: w.port, protocol: w.protocol, label: w.label })))}>Forward</Btn>}
             {w.state === 'ok' && <ReachCheck port={w.port} protocol={w.protocol} />}
           </div>
-        ))}
+        ))) : d.mappings.length === 0 ? <TileEmpty text="No forwardings set up." /> : (
+          <div className="table-wrap"><table className="table"><thead><tr><th>Port</th><th>to</th><th>Description</th><th>Set up by</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>
+            {d.mappings.map((m) => (
+              <tr key={m.protocol + m.externalPort}>
+                <td className="mono small">{m.externalPort}/{m.protocol}{m.internalPort !== m.externalPort ? ` → ${m.internalPort}` : ''}</td>
+                <td className="mono small">{m.internalClient}{m.here && <span className="badge router-gap">this PC</span>}</td>
+                <td className="small">{m.description}</td>
+                <td className="small"><Origin o={m.origin} />{m.origin && m.origin.stale ? <span className="tiny muted"> · {t('no longer needed')}</span> : null}</td>
+                <td className="actions">{(m.ours || m.here) && <Btn className="ghost xs icon" icon={Trash2} title="Remove" aria-label="Remove" busy={busy === `rm-${m.protocol}-${m.externalPort}`} onClick={() => unfwd(m)} />}</td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        )}
       </div>
-      {(d.kind === 'upnp' || d.mappingsVia === 'login') && (
-        <div className="card">
-          <div className="card-head"><ListChecks size={16} /><h3>All forwardings in the router</h3><span className="badge">{d.mappings.length}</span></div>
-          {d.mappings.length === 0 ? <TileEmpty text="No forwardings set up." /> : (
-            <table className="table"><thead><tr><th>Port</th><th>to</th><th>Description</th><th>Set up by</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>
-              {d.mappings.map((m) => (
-                <tr key={m.protocol + m.externalPort}>
-                  <td className="mono small">{m.externalPort}/{m.protocol}{m.internalPort !== m.externalPort ? ` → ${m.internalPort}` : ''}</td>
-                  <td className="mono small">{m.internalClient}{m.here && <span className="badge router-gap">this PC</span>}</td>
-                  <td className="small">{m.description}</td>
-                  <td className="small"><Origin o={m.origin} />{m.origin && m.origin.stale ? <span className="tiny muted"> · {t('no longer needed')}</span> : null}</td>
-                  <td className="actions">{(m.ours || m.here) && <Btn className="ghost xs icon" icon={Trash2} title="Remove" aria-label="Remove" busy={busy === `rm-${m.protocol}-${m.externalPort}`} onClick={() => unfwd(m)} />}</td>
-                </tr>
-              ))}
-            </tbody></table>
-          )}
-        </div>
+      {logged && <RouterAccess onChange={() => r.reload()} />}
+      {details && (
+        <Modal size="wide" title="Connection details" onClose={() => setDetails(false)} footer={<Btn onClick={() => setDetails(false)}>Close</Btn>}>
+          <div className="stack">
+            <dl className="kv">
+              {d.router && d.router.manufacturer && <><dt>Manufacturer</dt><dd>{d.router.manufacturer}</dd></>}
+              <dt>Router</dt><dd>{d.router ? d.router.model || d.router.name : '–'}</dd>
+              <dt>Router address</dt><dd className="mono">{d.gateway || '–'}</dd>
+              <dt>This computer</dt><dd className="mono">{d.localIp || '–'}{d.iface && <span className="tiny muted"> · {d.iface}</span>}</dd>
+              <dt>Public address</dt><dd className="mono row-tight">{d.externalIp || '–'}{d.externalIp && <button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy" onClick={() => copy(d.externalIp)}><Copy /></button>}</dd>
+              {d.connection && <><dt>Internet</dt><dd>{d.connection === 'Connected' ? t('connected') : d.connection}</dd></>}
+            </dl>
+            {d.ipv6 && <RouterV6 d={d} setData={r.setData} />}
+          </div>
+        </Modal>
       )}
       {add && (
         <Modal title="Own forwarding" onClose={() => setAdd(null)} footer={<><Btn onClick={() => setAdd(null)}>Cancel</Btn><Btn className="primary" busy={busy === 'add'} disabled={!(Number(add.port) > 0)} onClick={() => act('add', async () => { r.setData(await post('/router/forward', { ...add, port: Number(add.port), remember: true })); setAdd(null); toast.success('Forwarded'); })}>Forward</Btn></>}>

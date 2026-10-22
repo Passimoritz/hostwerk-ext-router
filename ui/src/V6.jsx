@@ -34,12 +34,12 @@ export default function RouterV6({ d, setData }) {
   };
   const last = d.dyndns.last;
   return (
-    <div className="card">
-      <div className="card-head"><Network size={16} /><h3>IPv6 &amp; connection type</h3><span className={`badge ${d.dslite || d.cgnat ? 'warn' : 'ok'}`}>{kind}</span></div>
-      <div className="card-body stack" style={{ gap: 12 }}>
-        <div className="stack small" style={{ gap: 6 }}>
+    <section className="stack router-gap-3" aria-label={t('IPv6 & connection type')}>
+      <h4 className="row-tight router-h"><Network size={16} aria-hidden="true" />{t('IPv6 & connection type')}<span className={`badge ${d.dslite || d.cgnat ? 'warn' : 'ok'}`}>{t(kind)}</span></h4>
+      <div className="stack router-gap-3">
+        <div className="stack small router-tight">
           <div className="row"><span className="muted">IPv4 from outside</span><b className="mono">{(d.net && d.net.v4public) || '–'}</b>{d.dslite && <span className="tiny muted">(shared – cannot be reached)</span>}</div>
-          <div className="row"><span className="muted">IPv6 of this PC</span><b className="mono ellipsis" style={{ maxWidth: 300 }}>{d.ipv6.address || t('none')}</b>{d.ipv6.address && <button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy" onClick={() => copy(d.ipv6.address)}><Copy /></button>}</div>
+          <div className="row"><span className="muted">IPv6 of this PC</span><b className="mono ellipsis router-v6">{d.ipv6.address || t('none')}</b>{d.ipv6.address && <button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy" onClick={() => copy(d.ipv6.address)}><Copy /></button>}</div>
         </div>
         {d.ipv6.address && (
           <SettingRow title="Open ports for IPv6 too" text={d.ipv6.auto ? 'Hostwerk opens the same ports in the IPv6 firewall of the router (when syncing and every 30 minutes).' : 'Your router does not offer this automatically – see the note below.'}>
@@ -64,6 +64,6 @@ export default function RouterV6({ d, setData }) {
         </div>
         {last && <div className={`tiny ${last.ok ? 'muted' : 'err'}`}>{last.ok ? t('Last update: {ips} ({when})', { ips: [last.ip4, last.ip6].filter(Boolean).join(' · '), when: new Date(last.t).toLocaleString() }) : t('The provider reports: {text}', { text: last.answer })}</div>}
       </div>
-    </div>
+    </section>
   );
 }

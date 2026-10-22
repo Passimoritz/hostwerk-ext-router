@@ -1,3 +1,7 @@
+## 1.4.0
+
+- Fits on one screen: “Sign in” is a status line at the very top (sign-in in a dialog), the overview uses Hostwerk’s own figures, one card “Forward automatically” with the ways as chips, Hostwerk’s ports and all router forwardings share one card with a switch, router facts plus IPv6 & DynDNS moved into “Connection details …”; explanations behind an ⓘ / Passt auf einen Bildschirm: „Anmelden“ als Statuszeile ganz oben (Anmeldung im Dialog), der Überblick nutzt Hostwerks eigene Kennzahlen, eine Karte „Automatisch freigeben“ mit den Wegen als Chips, Ports von Hostwerk und alle Router-Freigaben teilen sich eine Karte mit Umschalter, Router-Eckdaten samt IPv6 & DynDNS stehen unter „Anschluss-Details …“; Erklärungen hinter einem ⓘ
+
 ## 1.3.2
 
 - German texts use Hostwerk’s words: “Passwort” instead of “Kennwort”, “Router-Anmeldung” instead of “Router-Login”. / Deutsche Texte mit Hostwerks Wörtern: „Passwort“ statt „Kennwort“, „Router-Anmeldung“ statt „Router-Login“.

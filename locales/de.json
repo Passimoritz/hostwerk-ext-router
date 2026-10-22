@@ -347,6 +347,13 @@
   "The router refused the forwarding (NAT-PMP). Allow it in the router or forward the port by hand.": "Der Router hat die Freigabe abgelehnt (NAT-PMP). Erlaube sie im Router oder gib den Port von Hand frei.",
   "The router has an internal error – restart it or try again later.": "Der Router hat einen internen Fehler – starte ihn neu oder versuch es später.",
   "The router does not allow this – sign in under “Router access” with a user who may change forwardings.": "Der Router erlaubt das nicht – melde dich unter „Router-Zugang“ mit einem Nutzer an, der Freigaben ändern darf.",
+  "Connection details …": "Anschluss-Details …",
+  "Connection details": "Anschluss-Details",
+  "Sign in …": "Anmelden …",
+  "Sign in to the router": "Am Router anmelden",
+  "Sign in to manage devices, Wi-Fi and forwardings directly.": "Melde dich an, um Geräte, WLAN und Freigaben direkt zu verwalten.",
+  "Ways to forward": "Wege zum Freigeben",
+  "All in the router": "Alle im Router",
   "$patterns": [
     [
       "The router answers with {}",
