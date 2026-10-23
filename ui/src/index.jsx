@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, RefreshCw, Copy, ExternalLink, Wand2, Plus, Globe2, ListChecks, Trash2, Router as RouterIcon, Radar, Network } from 'lucide-react';
 import { get, post, put, useApi, openExternal } from '@hostwerk/api';
 import { Btn, Callout, Field, InfoTip, Loading, Modal, Seg, Switch, toast, confirmDialog, TileEmpty } from '@hostwerk/ui';
+import * as HUI from '@hostwerk/ui';
 import { t } from '@hostwerk/i18n';
 import RouterAccess from './Access';
 import RouterV6 from './V6';
 import { RouterOverview, RouterTile } from './Overview';
 import './style.css';
+
+// Seitenblatt aus Hostwerk (neuere Versionen) – die Seite bleibt daneben sichtbar; ältere Versionen zeigen denselben Inhalt als Dialog
+const Sheet = HUI.SideSheet || Modal;
 
 /*
  * Router & port forwarding: the router tab in "Go live" (slot "live.tabs", group "Make reachable", same address
@@ -123,7 +127,7 @@ export function RouterTab() {
       </div>
       {logged && <RouterAccess onChange={() => r.reload()} />}
       {details && (
-        <Modal size="wide" title="Connection details" onClose={() => setDetails(false)} footer={<Btn onClick={() => setDetails(false)}>Close</Btn>}>
+        <Sheet size="wide" title="Connection details" onClose={() => setDetails(false)} footer={<Btn onClick={() => setDetails(false)}>Close</Btn>}>
           <div className="stack">
             <dl className="kv">
               {d.router && d.router.manufacturer && <><dt>Manufacturer</dt><dd>{d.router.manufacturer}</dd></>}
@@ -135,7 +139,7 @@ export function RouterTab() {
             </dl>
             {d.ipv6 && <RouterV6 d={d} setData={r.setData} />}
           </div>
-        </Modal>
+        </Sheet>
       )}
       {add && (
         <Modal title="Own forwarding" onClose={() => setAdd(null)} footer={<><Btn onClick={() => setAdd(null)}>Cancel</Btn><Btn className="primary" busy={busy === 'add'} disabled={!(Number(add.port) > 0)} onClick={() => act('add', async () => { r.setData(await post('/router/forward', { ...add, port: Number(add.port), remember: true })); setAdd(null); toast.success('Forwarded'); })}>Forward</Btn></>}>

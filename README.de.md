@@ -16,7 +16,7 @@ Macht deine Server aus dem Internet erreichbar: Portfreigaben über UPnP/NAT-PMP
 - MikroTik (RouterOS 7) und UniFi (UniFi OS) direkt – Freigaben und Geräte, bei UniFi auch WLAN
 - Jede Freigabe zeigt ihre Herkunft (Hostwerk, welche Erweiterung, von Hand, anderes Gerät) und lässt sich „von außen“ prüfen (öffentliche Port-Prüfung ifconfig.co, nur auf Klick)
 - Gast-WLAN mit QR-Code zum Beitreten – zum Ausdrucken und an den Kühlschrank
-- IPv6 und DS-Lite, DynDNS
+- IPv6 und DS-Lite, DynDNS – unter „Anschluss-Details …“, zusammen mit Router-Adresse, diesem PC und öffentlicher Adresse
 - „Für Freunde im Internet“ an jedem Minecraft-Server
 - Freigaben anderer Erweiterungen (Dateifreigabe, Bedrock-Brücke …) mit Besitzer – die Automatik behält sie
 - **Kein eigener Eintrag in der Seitenleiste mehr (ab 1.3):** der Router steht im Livebetrieb unter *Erreichbar machen →

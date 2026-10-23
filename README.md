@@ -16,7 +16,7 @@ Makes your servers reachable from the internet: port forwarding via UPnP/NAT-PMP
 - MikroTik (RouterOS 7) and UniFi (UniFi OS) directly – forwardings and devices, on UniFi also Wi-Fi
 - Every forwarding shows where it comes from (Hostwerk, which extension, by hand, another device) and can be checked “from outside” (public port check ifconfig.co, only on click)
 - Guest Wi-Fi with a QR code to join – print it and put it on the fridge
-- IPv6 and DS-Lite, DynDNS
+- IPv6 and DS-Lite, DynDNS – under “Connection details …”, together with router address, this PC and public address
 - “For friends on the internet” on every Minecraft server
 - Forwardings of other extensions (file share, Bedrock bridge …) with their owner – the automatic mode keeps them
 - **No own sidebar entry any more (since 1.3):** the router lives in Go live under *Make reachable → Router*, plus a tile
