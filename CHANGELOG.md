@@ -1,3 +1,7 @@
+## 1.4.1
+
+- New animated icon and banner in the common Hostwerk style (isometric block). / Neues animiertes Symbol und Banner im gemeinsamen Hostwerk-Stil (isometrischer Block).
+
 ## 1.4.0
 
 - “Connection details …” opens as a side sheet with newer Hostwerk versions (the page stays visible next to it), as a dialog before / „Anschluss-Details …“ öffnet mit neueren Hostwerk-Versionen als Seitenblatt (die Seite bleibt daneben sichtbar), sonst als Dialog
