@@ -1,3 +1,9 @@
+# Changelog
+
+## 1.5.0
+
+- DynDNS moved to the extension "DNS management": it takes a name set up here over by itself (token included) and keeps it up to date with more providers and a check from outside. Old names keep working here until they are moved or switched off; new ones are set up in DNS management. / DynDNS ist in die Erweiterung „DNS-Verwaltung“ umgezogen: Sie übernimmt einen hier eingerichteten Namen samt Token von selbst und hält ihn mit mehr Anbietern und Prüfung von außen aktuell. Alte Namen laufen hier weiter, bis sie umgezogen oder abgeschaltet sind; neue richtest du in der DNS-Verwaltung ein.
+
 ## 1.4.1
 
 - New animated icon and banner in the common Hostwerk style (isometric block). / Neues animiertes Symbol und Banner im gemeinsamen Hostwerk-Stil (isometrischer Block).

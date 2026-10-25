@@ -513,6 +513,9 @@ class RouterService {
     r.put('/router/dyndns', async (req, res) => {
       const b = req.body || {};
       const d = this.dyn;
+      // Seit 1.5.0 richtet man feste Namen in der DNS-Verwaltung ein – hier gehen nur noch Abschalten und Ändern eines
+      // bestehenden Namens (z. B. Token erneuern), damit alte Einrichtungen weiterlaufen
+      if (b.provider && !d.provider) throw new Error(t('Set up fixed names (DynDNS) in DNS management.'));
       if (b.provider !== undefined) { if (!['', 'duckdns', 'dynv6', 'desec', 'custom'].includes(b.provider)) throw new Error(t('Unknown DynDNS provider.')); d.provider = b.provider; }
       if (typeof b.domain === 'string') { if (b.domain && !/^[a-z0-9.-]+\.[a-z]{2,}$|^[a-z0-9-]+$/i.test(b.domain.trim())) throw new Error(t('Invalid name.')); d.domain = b.domain.trim().toLowerCase(); }
       if (typeof b.token === 'string' && b.token.trim()) d.token = this.secrets.seal(b.token.trim());

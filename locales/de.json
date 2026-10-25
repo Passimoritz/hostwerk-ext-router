@@ -387,5 +387,14 @@
       "UniFi: {}",
       "UniFi: {}"
     ]
-  ]
+  ],
+  "Set up fixed names (DynDNS) in DNS management.": "Feste Namen (DynDNS) richtest du in der DNS-Verwaltung ein.",
+  "– a name like “myserver.dynv6.net” that always points to your current address. You set it up in DNS management: more providers, IPv4 and IPv6, a check from outside and notifications.": "– ein Name wie „meinserver.dynv6.net“, der immer auf deine aktuelle Adresse zeigt. Du richtest ihn in der DNS-Verwaltung ein: mehr Anbieter, IPv4 und IPv6, Prüfung von außen und Benachrichtigungen.",
+  "{name} is still kept up to date here (old setting).": "{name} wird noch hier aktuell gehalten (alte Einstellung).",
+  "Move to DNS management": "In die DNS-Verwaltung übernehmen",
+  "{name} is now kept up to date in DNS management.": "{name} wird jetzt in der DNS-Verwaltung aktuell gehalten.",
+  "Open DNS management": "DNS-Verwaltung öffnen",
+  "Install DNS management": "DNS-Verwaltung installieren",
+  "Switch off here": "Hier abschalten",
+  "Switched off": "Abgeschaltet"
 }
