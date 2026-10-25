@@ -13,6 +13,9 @@ function activate(host) {
   svc = new RouterService(host, { timers: !process.env.HW_TEST });
   host.provide('router', svc);
   svc.routes(host.router);
+  if (typeof host.aiExtend === 'function') host.aiExtend(require('./ai').routerAi(svc)); // KI-Werkzeuge (SDK 3.5)
+  if (typeof host.contribute === 'function') require('./contrib').contribute(host, svc);
+  if (typeof host.contribute === 'function') host.contribute('clickguard', { block: [/^\/router(\/|$)/] }); // Klick-Test: wirkt außerhalb des Test-Ordners
   host.on('shutdown', () => svc && svc.stop());
 }
 
