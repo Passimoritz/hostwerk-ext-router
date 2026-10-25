@@ -4,7 +4,7 @@
 
 Macht deine Server aus dem Internet erreichbar: Portfreigaben über UPnP/NAT-PMP oder direkt über FRITZ!Box (TR-064) und OpenWrt, IPv6 und DS-Lite, DynDNS.
 
-[English](README.md) · Offizielle [Hostwerk](https://github.com/Passimoritz/hostwerk-public)-Erweiterung (SDK 2.7, native Erweiterung)
+[English](README.md) · Offizielle [Hostwerk](https://github.com/Passimoritz/hostwerk-public)-Erweiterung (native Erweiterung, ab Hostwerk 2.9)
 
 ![Bildschirmfoto](docs/screenshot.de.png)
 
