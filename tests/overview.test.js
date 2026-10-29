@@ -139,3 +139,21 @@ test('UniFi driver against the UniFi OS replica: sign-in, CSRF, renewed session,
     await assert.rejects(new UniFi({ base: u.url, user: 'hw', pass: 'falsch', insecure: true }).info(), (e) => e.code === 401);
   } finally { await u.close(); }
 });
+
+test('1.6: points for Go live → Overview come from the own state – failed, open, all forwarded, none without router', () => {
+  const { overviewPoints } = require('../server/contrib');
+  const { svc } = service();
+  assert.deepStrictEqual(overviewPoints(svc), [], 'nothing asked yet → no point');
+  svc.lastState = { at: 1, total: 2, open: [25565], noRouter: false, stuck: false };
+  let p = overviewPoints(svc);
+  assert.strictEqual(p[0].level, 'warn'); assert.strictEqual(p[0].area, 'online'); assert.strictEqual(p[0].href, '#/live/online/router');
+  svc.lastSync = { at: 2, failed: [{ port: 25565, error: 'Port 25565 is already given to 192.168.1.9 in the router.' }] };
+  p = overviewPoints(svc);
+  assert.strictEqual(p[0].level, 'err'); assert.match(p[0].detail, /1 failed/);
+  svc.lastState = { at: 3, total: 2, open: [], noRouter: false, stuck: false };
+  assert.strictEqual(overviewPoints(svc)[0].level, 'ok', 'forwarded meanwhile → ok');
+  svc.lastState = { at: 4, total: 2, open: [8080], noRouter: false, stuck: true };
+  assert.deepStrictEqual(overviewPoints(svc), [], 'carrier NAT: forwardings do not help → no warning');
+  svc.lastState = { at: 5, total: 2, open: [8080], noRouter: true, stuck: false };
+  assert.deepStrictEqual(overviewPoints(svc), []);
+});

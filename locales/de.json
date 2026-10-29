@@ -292,7 +292,7 @@
   "Checked from outside": "Von außen geprüft",
   "reachable": "erreichbar",
   "not reachable": "nicht erreichbar",
-  "Forwarded but not reachable: is the service running? Does the firewall of this PC let it through (Go live → Firewall)? Some providers block single ports.": "Freigegeben, aber nicht erreichbar: Läuft der Dienst? Lässt die Firewall dieses PCs ihn durch (Livebetrieb → Firewall)? Manche Anbieter sperren einzelne Ports.",
+  "Forwarded but not reachable: is the service running? Does the firewall of this PC let it through (Go live → Protection → Firewall)? Some providers block single ports.": "Freigegeben, aber nicht erreichbar: Läuft der Dienst? Lässt die Firewall dieses PCs ihn durch (Livebetrieb → Schutz → Firewall)? Manche Anbieter sperren einzelne Ports.",
   "Share a page (tunnel)": "Seite teilen (Tunnel)",
   "VPN without forwarding (Tailscale & co.)": "VPN ohne Freigabe (Tailscale & Co.)",
   "A tunnel or a service like Tailscale opens the connection from the inside – that works behind every connection. Asking the provider for a public IPv4 (often free, sometimes called “dual stack”) also solves it.": "Ein Tunnel oder ein Dienst wie Tailscale baut die Verbindung von innen auf – das klappt hinter jedem Anschluss. Auch hilft es, beim Anbieter nach einer öffentlichen IPv4 zu fragen (oft kostenlos, manchmal „Dual Stack“ genannt).",
@@ -396,5 +396,9 @@
   "Open DNS management": "DNS-Verwaltung öffnen",
   "Install DNS management": "DNS-Verwaltung installieren",
   "Switch off here": "Hier abschalten",
-  "Switched off": "Abgeschaltet"
+  "Switched off": "Abgeschaltet",
+  "Router forwardings": "Router-Freigaben",
+  "{n} failed: {error}": "{n} fehlgeschlagen: {error}",
+  "Not forwarded yet: port {ports}": "Noch nicht freigegeben: Port {ports}",
+  "{n} of {n} forwarded": "{n} von {n} freigegeben"
 }

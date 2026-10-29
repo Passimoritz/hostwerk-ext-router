@@ -13,8 +13,8 @@ import './style.css';
 const Sheet = HUI.SideSheet || Modal;
 
 /*
- * Router & port forwarding: the router tab in "Go live" (slot "live.tabs", group "Make reachable", same address
- * #/live/router as before), a tile on the dashboard, and the "for friends on the internet" button on every Minecraft server
+ * Router & port forwarding: a section in "Go live → Online" (place "live.online", address #/live/online/router; older
+ * Hostwerk: the tab in "Make reachable", slot "live.tabs"), a tile on the dashboard, and the "for friends on the internet" button on every Minecraft server
  * (slot "mc.connect"). Since 1.3 there is no own sidebar entry – the page itself stays reachable from Extensions → Open.
  */
 const copy = (x) => navigator.clipboard.writeText(x).then(() => toast.success('Copied'));
@@ -161,7 +161,7 @@ export function FriendsShare({ s }) {
   const [busy, setBusy] = useState(false);
   const check = () => get('/router').then(setSt).catch(() => setSt({ error: true }));
   useEffect(() => { check(); }, [s.port]); // eslint-disable-line react-hooks/exhaustive-deps -- asks the router (slow); again only when the port changes
-  if (!st || st.error || (!st.kind && !st.direct && !(st.access && st.access.loggedIn))) return st && !st.error && st.gateway ? <div className="tiny muted">{t('For friends over the internet: forward port {port} in the router to this PC', { port: s.port })} (<a href="#/live/router">{t('Router')}</a>).</div> : null;
+  if (!st || st.error || (!st.kind && !st.direct && !(st.access && st.access.loggedIn))) return st && !st.error && st.gateway ? <div className="tiny muted">{t('For friends over the internet: forward port {port} in the router to this PC', { port: s.port })} (<a href="#/live/online/router">{t('Router')}</a>).</div> : null;
   const w = st.mappings.find((m) => m.externalPort === s.port && m.protocol === 'TCP');
   const addr = st.externalIp ? `${st.externalIp}${s.port === 25565 ? '' : `:${s.port}`}` : null;
   if (st.direct && !st.kind) return addr ? <div className="row-tight"><code className="grow ellipsis">{addr}</code><span className="tiny muted">for friends</span></div> : null;
@@ -183,7 +183,7 @@ function RouterPage() {
           <h1><RouterIcon /> Router & port forwarding</h1>
           <p>Reach your servers from the internet: forwardings, IPv6, DynDNS and – after signing in – devices and Wi-Fi of your router.</p>
         </div>
-        <div className="actions"><a className="btn sm ghost" href="#/live/router">Open in Go live</a></div>
+        <div className="actions"><a className="btn sm ghost" href="#/live/online/router">Open in Go live</a></div>
       </div>
       <RouterTab />
     </div>
@@ -192,8 +192,14 @@ function RouterPage() {
 
 export default {
   pages: { main: RouterPage },
+  // Hostwerk with SDK 3.11: a section in Go live → Online (#/live/online/router)
+  sections: {
+    'live.online': [{ id: 'router', title: 'Router', icon: RouterIcon, Component: RouterTab, order: 30 }],
+  },
   slots: {
-    'live.tabs': [{ id: 'router', title: 'Router', icon: RouterIcon, Component: RouterTab, order: 30, group: 'erreichbar', after: 'teilen' }],
+    // Older Hostwerk (before SDK 3.11): the tab in Go live → Make reachable. fallback: true – Hostwerk 3.11 and newer leave it
+    // out (the section above is there), older versions ignore the flag and show the tab as before.
+    'live.tabs': [{ id: 'router', title: 'Router', icon: RouterIcon, Component: RouterTab, order: 30, group: 'erreichbar', after: 'teilen', fallback: true }],
     'dashboard.tiles': [{ id: 'state', title: 'Router', icon: RouterIcon, size: 'third', Component: RouterTile }],
     'mc.connect': [{ id: 'friends', title: 'For friends', Component: FriendsShare, order: 40 }],
   },

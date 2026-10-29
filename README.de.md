@@ -10,7 +10,7 @@ Macht deine Server aus dem Internet erreichbar: Portfreigaben über UPnP/NAT-PMP
 
 ## Was sie kann
 
-- **Wo:** Livebetrieb → Erreichbar machen → Router und Übersichtskachel – seit 1.3.1 ohne eigenen Seitenleisten-Eintrag; die ganze Seite bleibt unter Erweiterungen → Öffnen
+- **Wo:** Livebetrieb → Online → Router (ältere Hostwerk: Erreichbar machen → Router) und Übersichtskachel – seit 1.3.1 ohne eigenen Seitenleisten-Eintrag; die ganze Seite bleibt unter Erweiterungen → Öffnen
 - Findet den Router selbst, gibt Ports mit einem Klick frei (UPnP/NAT-PMP)
 - FRITZ!Box (TR-064) und OpenWrt direkt – Geräte, WLAN, neue IP-Adresse und Neustart
 - MikroTik (RouterOS 7) und UniFi (UniFi OS) direkt – Freigaben und Geräte, bei UniFi auch WLAN
@@ -19,8 +19,8 @@ Macht deine Server aus dem Internet erreichbar: Portfreigaben über UPnP/NAT-PMP
 - IPv6 und DS-Lite – unter „Anschluss-Details …“ (DynDNS steckt seit 1.5.0 in der Erweiterung „DNS-Verwaltung“; alte Namen übernimmt sie von selbst), zusammen mit Router-Adresse, diesem PC und öffentlicher Adresse
 - „Für Freunde im Internet“ an jedem Minecraft-Server
 - Freigaben anderer Erweiterungen (Dateifreigabe, Bedrock-Brücke …) mit Besitzer – die Automatik behält sie
-- **Kein eigener Eintrag in der Seitenleiste mehr (ab 1.3):** der Router steht im Livebetrieb unter *Erreichbar machen →
-  Router*, dazu eine Kachel für die Übersicht (Übersicht → Anpassen). Die volle Seite bleibt über *Erweiterungen → Öffnen*
+- **Kein eigener Eintrag in der Seitenleiste mehr (ab 1.3):** der Router steht im Livebetrieb unter *Online → Router*
+  (seit 1.6.0; vorher *Erreichbar machen → Router*), dazu eine Kachel für die Übersicht (Übersicht → Anpassen). Die volle Seite bleibt über *Erweiterungen → Öffnen*
   erreichbar.
 - **Überblick oben:** Router erkannt (mit UPnP-Zustand: an, aus, nur teilweise erlaubt, NAT-PMP), Freigaben, „von außen
   erreichbar?“ für alle freigegebenen TCP-Ports auf einmal, öffentliche IPv4 und IPv6

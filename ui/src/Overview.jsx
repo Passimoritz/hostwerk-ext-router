@@ -66,7 +66,7 @@ export function RouterOverview({ d, setData }) {
               {r.reachable === true ? <span className="badge ok">reachable</span> : r.reachable === false ? <span className="badge err">not reachable</span> : <span className="badge" title={r.error || t('Only TCP ports can be checked from outside.')}>{r.error ? t('check failed') : t('not checkable')}</span>}
             </div>
           ))}
-          {o.reachable === false && <div className="card-body tiny muted">Forwarded but not reachable: is the service running? Does the firewall of this PC let it through (Go live → Firewall)? Some providers block single ports.</div>}
+          {o.reachable === false && <div className="card-body tiny muted">Forwarded but not reachable: is the service running? Does the firewall of this PC let it through (Go live → Protection → Firewall)? Some providers block single ports.</div>}
         </div>
       )}
       {d.conflicts && d.conflicts.length > 0 && (
@@ -78,7 +78,7 @@ export function RouterOverview({ d, setData }) {
         <Callout kind="info" title={d.reachability === 'cgnat' ? 'Forwardings do not help with this connection' : 'There is another router in front'} dismissible={false}>
           {d.reachability === 'cgnat' ? 'Your provider shares one public IPv4 among many customers – nobody can reach this PC from outside over IPv4, whatever is forwarded here. What works:' : 'Forwardings have to be set up on the front device too (often the provider’s modem). Or skip them:'}
           <div className="row-tight router-wrap router-note">
-            <a className="btn sm" href="#/live/teilen"><Share2 size={14} />Share a page (tunnel)</a>
+            <a className="btn sm" href="#/live/online"><Share2 size={14} />Share a page (tunnel)</a>
             <a className="btn sm" href="#/ext?detail=vpn"><Shield size={14} />VPN without forwarding (Tailscale & co.)</a>
             <InfoTip pop title="Why?">A tunnel or a service like Tailscale opens the connection from the inside – that works behind every connection. Asking the provider for a public IPv4 (often free, sometimes called “dual stack”) also solves it.</InfoTip>
           </div>
@@ -95,7 +95,7 @@ export function RouterTile() {
   const d = r.data;
   const ok = d.wanted.filter((w) => w.state === 'ok').length;
   return (
-    <a className="card-body stack router-tile" href="#/live/router">
+    <a className="card-body stack router-tile" href="#/live/online/router">
       <span className="row-tight"><RouterIcon size={16} aria-hidden="true" /><b className="ellipsis">{d.router ? d.router.model || d.router.name : t('No router found')}</b></span>
       <span className="small">{t('Forwardings: {ok} of {all}', { ok, all: d.wanted.length })}{d.conflicts && d.conflicts.length ? <span className="c-warn"> · {pl(d.conflicts.length, '{n} conflict', '{n} conflicts')}</span> : null}</span>
       <span className="small">{t('From outside: {state}', { state: outsideText(d.outside) })}</span>

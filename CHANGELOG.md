@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0
+
+- Go live in five areas (Hostwerk with SDK 3.11): the router is a section in Go live → Online (#/live/online/router); older Hostwerk versions keep the tab under “Make reachable”. / Livebetrieb in fünf Bereichen (Hostwerk mit SDK 3.11): Der Router ist ein Abschnitt unter Livebetrieb → Online (#/live/online/router); ältere Hostwerk-Versionen behalten den Reiter unter „Erreichbar machen“.
+- Go live → Overview shows the forwardings: all forwarded, still open or failed (from the last check, no extra router request). / Livebetrieb → Lage zeigt die Freigaben: alle freigegeben, noch offen oder fehlgeschlagen (aus der letzten Abfrage, ohne zusätzliche Router-Anfrage).
+- Links point to the new addresses (Online, Online → DNS, Protection → Firewall). / Links zeigen auf die neuen Adressen (Online, Online → DNS, Schutz → Firewall).
+
 ## 1.5.0
 
 - DynDNS moved to the extension "DNS management": it takes a name set up here over by itself (token included) and keeps it up to date with more providers and a check from outside. Old names keep working here until they are moved or switched off; new ones are set up in DNS management. / DynDNS ist in die Erweiterung „DNS-Verwaltung“ umgezogen: Sie übernimmt einen hier eingerichteten Namen samt Token von selbst und hält ihn mit mehr Anbietern und Prüfung von außen aktuell. Alte Namen laufen hier weiter, bis sie umgezogen oder abgeschaltet sind; neue richtest du in der DNS-Verwaltung ein.

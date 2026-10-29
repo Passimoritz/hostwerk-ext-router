@@ -420,6 +420,8 @@ class RouterService {
     out.conflicts = findConflicts({ wanted: out.wanted, mappings: out.mappings, extra: this.cfg.extra, publicPorts, nameOf: (id) => this.extName(id) }).map((c) => ({ ...c, text: t(c.text, { ...c.vars, a: t(c.vars.a || ''), b: t(c.vars.b || '') }) }));
     out.reachability = reachability(out);
     out.outside = this.cfg.outside || null;
+    // Own state for Go live → Overview (contrib.js, live.overview): answered from here, never by asking the router again
+    this.lastState = { at: Date.now(), total: out.wanted.length, open: out.wanted.filter((w) => w.state !== 'ok').map((w) => w.port), noRouter: out.direct && !out.kind, stuck: out.reachability === 'cgnat' || !!out.dslite };
     return out;
   }
 
@@ -473,6 +475,7 @@ class RouterService {
     // DS-Lite/carrier NAT: IPv4 forwardings fail by nature – not an error when IPv6 works
     if ((st.dslite || st.cgnat) && res.v6 && res.v6.opened.length) res.failed = [];
     this.cache = null;
+    this.lastSync = { at: Date.now(), failed: res.failed.map((x) => ({ port: x.port, error: x.error })) };
     return res;
   }
 

@@ -38,7 +38,7 @@ function DynDnsMoved({ d, setData }) {
       )}
       <div className="row-tight">
         {dns && old && old.provider !== 'custom' && <Btn className="primary sm" icon={Globe} busy={busy === 'take'} onClick={takeOver}>Move to DNS management</Btn>}
-        {dns ? <a className="btn sm" href="#/live/dns"><Globe size={14} aria-hidden="true" />{t('Open DNS management')}</a> : dns === null && <a className="btn sm" href="#/ext"><Globe size={14} aria-hidden="true" />{t('Install DNS management')}</a>}
+        {dns ? <a className="btn sm" href="#/live/online/dns"><Globe size={14} aria-hidden="true" />{t('Open DNS management')}</a> : dns === null && <a className="btn sm" href="#/ext"><Globe size={14} aria-hidden="true" />{t('Install DNS management')}</a>}
         {old && <Btn className="sm ghost" icon={PowerOff} busy={busy === 'off'} onClick={off}>Switch off here</Btn>}
       </div>
     </div>

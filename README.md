@@ -10,7 +10,7 @@ Makes your servers reachable from the internet: port forwarding via UPnP/NAT-PMP
 
 ## What it does
 
-- **Where:** Go live → Make reachable → Router and the dashboard tile – no own sidebar entry since 1.3.1; the full page stays under Extensions → Open
+- **Where:** Go live → Online → Router (older Hostwerk: Make reachable → Router) and the dashboard tile – no own sidebar entry since 1.3.1; the full page stays under Extensions → Open
 - Finds the router by itself, forwards ports with one click (UPnP/NAT-PMP)
 - FRITZ!Box (TR-064) and OpenWrt directly – devices, Wi-Fi, new IP address and reboot
 - MikroTik (RouterOS 7) and UniFi (UniFi OS) directly – forwardings and devices, on UniFi also Wi-Fi
@@ -19,7 +19,7 @@ Makes your servers reachable from the internet: port forwarding via UPnP/NAT-PMP
 - IPv6 and DS-Lite – under “Connection details …” (DynDNS lives in the extension “DNS management” since 1.5.0; it takes old names over by itself), together with router address, this PC and public address
 - “For friends on the internet” on every Minecraft server
 - Forwardings of other extensions (file share, Bedrock bridge …) with their owner – the automatic mode keeps them
-- **No own sidebar entry any more (since 1.3):** the router lives in Go live under *Make reachable → Router*, plus a tile
+- **No own sidebar entry any more (since 1.3):** the router lives in Go live under *Online → Router* (since 1.6.0; before: *Make reachable → Router*), plus a tile
   for the dashboard (Dashboard → Customise). The full page stays reachable from *Extensions → Open*.
 - **At a glance:** router found (with UPnP state: on, off, only partly allowed, NAT-PMP), forwardings, “reachable from
   outside?” for every forwarded TCP port at once, public IPv4 and IPv6
