@@ -140,7 +140,7 @@ test('UniFi driver against the UniFi OS replica: sign-in, CSRF, renewed session,
   } finally { await u.close(); }
 });
 
-test('1.6: points for Go live → Overview come from the own state – failed, open, all forwarded, none without router', () => {
+test('1.6: points for Go live → Status come from the own state – failed, open, all forwarded, none without router', () => {
   const { overviewPoints } = require('../server/contrib');
   const { svc } = service();
   assert.deepStrictEqual(overviewPoints(svc), [], 'nothing asked yet → no point');

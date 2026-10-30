@@ -420,7 +420,7 @@ class RouterService {
     out.conflicts = findConflicts({ wanted: out.wanted, mappings: out.mappings, extra: this.cfg.extra, publicPorts, nameOf: (id) => this.extName(id) }).map((c) => ({ ...c, text: t(c.text, { ...c.vars, a: t(c.vars.a || ''), b: t(c.vars.b || '') }) }));
     out.reachability = reachability(out);
     out.outside = this.cfg.outside || null;
-    // Own state for Go live → Overview (contrib.js, live.overview): answered from here, never by asking the router again
+    // Own state for Go live → Status (contrib.js, live.overview): answered from here, never by asking the router again
     this.lastState = { at: Date.now(), total: out.wanted.length, open: out.wanted.filter((w) => w.state !== 'ok').map((w) => w.port), noRouter: out.direct && !out.kind, stuck: out.reachability === 'cgnat' || !!out.dslite };
     return out;
   }
