@@ -157,3 +157,66 @@ test('1.6: points for Go live → Status come from the own state – failed, ope
   svc.lastState = { at: 5, total: 2, open: [8080], noRouter: true, stuck: false };
   assert.deepStrictEqual(overviewPoints(svc), []);
 });
+
+test('Prüfung 2026-11: forward checks the protocol, sign-in names a wrong address, keeper and audit read right', async () => {
+  const { svc, S } = service();
+  svc.igd = async () => { throw new Error('must not ask the router'); };
+  await assert.rejects(svc.forward({ port: 8080, protocol: 'SCTP' }), (e) => e.status === 400 && /TCP or UDP/.test(e.message));
+  await assert.rejects(svc.forward({ port: 70000 }), (e) => e.status === 400 && /Invalid port/.test(e.message));
+  // lowercase is accepted and reaches the router as TCP
+  let sent = null;
+  svc.igd = async () => ({ localIp: '192.168.1.5', upnp: { control: {} } });
+  const R = require('../server/upnp'); const add = R.add; R.add = async (c, x) => { sent = x; return true; };
+  try { assert.strictEqual((await svc.forward({ port: 8080, protocol: 'tcp' })).protocol, 'TCP'); } finally { R.add = add; }
+  assert.strictEqual(sent.protocol, 'TCP');
+  await assert.rejects(svc.login({ kind: 'mikrotik', base: 'router.local' }), (e) => e.status === 400 && /Invalid router address/.test(e.message));
+  await assert.rejects(svc.login({ kind: 'cisco', base: 'https://192.168.1.1' }), (e) => /router type/.test(e.message));
+  // keeper: an empty DynDNS object (created by the first status) does not count as "set up"
+  const got = {};
+  require('../server/contrib').contribute({ contribute: (k, v) => { got[k] = v; } }, svc);
+  S.router.dyndns = { provider: '', domain: '' };
+  assert.strictEqual(got.keeper.areas[0].auto(), 'teils');
+  S.router.dyndns.provider = 'duckdns';
+  assert.strictEqual(got.keeper.areas[0].auto(), true);
+  // audit: removing a forwarding is named as such
+  const [re, fn] = got.audit.routes[0];
+  const m = '/router/unforward'.match(re);
+  assert.ok(m);
+  assert.strictEqual(fn(m, {}, { method: 'POST', body: { port: 25565 } }).action, 'Freigabe entfernt');
+  assert.strictEqual(fn('/router/forward'.match(re), {}, { method: 'POST', body: { port: 25565 } }).action, 'Port freigegeben');
+});
+
+test('Prüfung 2026-11 (2): unforward checks port and protocol, lowercase removes the remembered entry, input errors are 400', async () => {
+  const { svc, S } = service();
+  svc.igd = async () => { throw new Error('must not ask the router'); };
+  await assert.rejects(svc.unforward({ port: 'x' }), (e) => e.status === 400 && /Invalid port/.test(e.message));
+  await assert.rejects(svc.unforward({ port: 8080, protocol: 'ICMP' }), (e) => e.status === 400 && /TCP or UDP/.test(e.message));
+  // lowercase reaches the router as TCP, and the route forgets the remembered 8080/TCP
+  let gone = null;
+  svc.igd = async () => ({ localIp: '192.168.1.5', upnp: { control: {} } });
+  svc.status = async () => ({ ok: true });
+  const R = require('../server/upnp'); const rm = R.remove; R.remove = async (c, x) => { gone = x; return true; };
+  const routes = {}; const reg = (m) => (p, fn) => { routes[`${m} ${p}`] = fn; };
+  svc.routes({ get: reg('get'), post: reg('post'), put: reg('put'), delete: reg('delete') });
+  try { await routes['post /router/unforward']({ body: { port: 8080, protocol: 'tcp' } }, { json: () => {} }); } finally { R.remove = rm; }
+  assert.deepStrictEqual(gone, { externalPort: 8080, protocol: 'TCP' });
+  assert.ok(!S.router.extra.some((e) => e.port === 8080), 'remembered forwarding forgotten');
+  // DynDNS input errors are the user's fault (400), not "the router does not answer" (502)
+  await assert.rejects(routes['put /router/dyndns']({ body: { provider: 'duckdns' } }, { json: () => {} }), (e) => e.status === 400);
+  await assert.rejects(svc.login({ kind: 'unifi', base: 'https://192.168.1.1', user: '' }), (e) => e.status === 400);
+});
+
+test('own forwarding with another internal port is remembered with it; the status names the last sync', async () => {
+  const { svc, S } = service();
+  const routes = {};
+  const reg = (m) => (p, h) => { routes[`${m} ${p}`] = h; };
+  svc.routes({ get: reg('GET'), post: reg('POST'), put: reg('PUT'), delete: reg('DELETE') });
+  const sent = [];
+  svc.forward = async (b) => { sent.push(b); return { port: b.port, protocol: b.protocol || 'TCP' }; };
+  svc.status = async () => ({ lastSync: svc.lastSync ? svc.lastSync.at : null });
+  await routes['POST /router/forward']({ body: { port: 2222, internalPort: 22, label: 'SSH', remember: true } }, { json() {} });
+  assert.deepStrictEqual(S.router.extra.find((e) => e.port === 2222), { port: 2222, protocol: 'TCP', label: 'SSH', internalPort: 22 });
+  assert.strictEqual(svc.wanted().find((w) => w.port === 2222).internalPort, 22, 'the sync forwards to the internal port');
+  await routes['POST /router/forward']({ body: { port: 3000, internalPort: 3000, remember: true } }, { json() {} });
+  assert.ok(!('internalPort' in S.router.extra.find((e) => e.port === 3000)), 'same port – nothing extra stored');
+});

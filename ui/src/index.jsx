@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, RefreshCw, Copy, ExternalLink, Wand2, Plus, Globe2, ListChecks, Trash2, Router as RouterIcon, Radar, Network } from 'lucide-react';
-import { get, post, put, useApi, openExternal } from '@hostwerk/api';
+import { get, post, put, useApi, openExternal, fmtDate } from '@hostwerk/api';
 import { Btn, Callout, Field, InfoTip, Loading, Modal, Seg, Switch, toast, confirmDialog, TileEmpty } from '@hostwerk/ui';
 import * as HUI from '@hostwerk/ui';
 import { t } from '@hostwerk/i18n';
@@ -18,6 +18,8 @@ const Sheet = HUI.SideSheet || Modal;
  * (slot "mc.connect"). Since 1.3 there is no own sidebar entry – the page itself stays reachable from Extensions → Open.
  */
 const copy = (x) => navigator.clipboard.writeText(x).then(() => toast.success('Copied'));
+/** Eigene Freigabe: ganze Zahl 1–65535 (sonst bleibt „Freigeben“ aus – vorher ging z. B. 70000 bis zum Server) */
+const portOk = (v) => { const n = Number(v); return v !== '' && Number.isInteger(n) && n >= 1 && n <= 65535; };
 
 /** Where a forwarding comes from: Hostwerk, an extension (by name), added by hand or another device/program. */
 export function Origin({ o }) {
@@ -33,7 +35,7 @@ function ReachCheck({ port, protocol }) {
   const [st, setSt] = useState(null);
   if (protocol !== 'TCP') return <span className="tiny muted" title={t('Only TCP ports can be checked from outside.')}>UDP</span>;
   if (st === 'busy') return <span className="tiny muted">{t('Checking …')}</span>;
-  if (st && st.error) return <button type="button" className="link-btn small c-err" onClick={() => setSt(null)}>{t('Check failed')}</button>;
+  if (st && st.error) return <button type="button" className="link-btn small c-err" title={st.error} onClick={() => setSt(null)}>{t('Check failed')}</button>;
   if (st) return <span className={`badge ${st.reachable ? 'ok' : 'err'}`} title={st.ip ? t('Checked at {ip}', { ip: st.ip }) : ''}>{st.reachable ? t('reachable from outside') : t('not reachable from outside')}</span>;
   return <button type="button" className="btn ghost xs" title={t('Asks a public port check (ifconfig.co) to connect to port {port} of your public address.', { port })} onClick={async () => { setSt('busy'); try { setSt(await get(`/router/reach/${port}`)); } catch (e) { setSt({ error: e.message }); } }}><Radar size={12} /> {t('Reachable?')}</button>;
 }
@@ -44,7 +46,8 @@ export function RouterTab() {
   const [add, setAdd] = useState(null);
   const [details, setDetails] = useState(false);
   const [list, setList] = useState('ours');
-  if (!r.data) return <Loading text="Looking for the router …" />;
+  // Fehler beim ersten Laden (Dienst weg, Router antwortet nicht): sonst bliebe „Router wird gesucht …“ für immer stehen
+  if (!r.data) return r.error ? <div className="stack router-page"><Callout kind="warn" title="The router cannot be read right now">{r.error} <button type="button" className="link-btn" onClick={() => r.reload()}>{t('Try again')}</button></Callout></div> : <Loading text="Looking for the router …" />;
   const d = r.data;
   // Forwarding works through UPnP/NAT-PMP or – after signing in – directly through the router access
   const logged = !!(d.access && d.access.loggedIn);
@@ -70,7 +73,7 @@ export function RouterTab() {
   return (
     <div className="stack router-page">
       {!logged && <RouterAccess onChange={() => r.reload()} />}
-      {d.direct && !d.kind && <InfoTip title="No router needed" icon={CheckCircle2}>{t('This computer has a public address directly ({ip}) – typical for rented servers in a data centre. Ports only have to be open in the firewall (tab “Security”).', { ip: d.localIp })}</InfoTip>}
+      {d.direct && !d.kind && <InfoTip title="No router needed" icon={CheckCircle2}>{t('This computer has a public address directly ({ip}) – typical for rented servers in a data centre. Ports only have to be open in the firewall (Go live → Protection → Firewall).', { ip: d.localIp })}</InfoTip>}
       <RouterOverview d={d} setData={r.setData} />
       {d.problems.map((p) => <Callout key={p} kind="warn">{p}</Callout>)}
       <div className="card">
@@ -87,9 +90,11 @@ export function RouterTab() {
             <Switch checked={d.auto} disabled={!ready} label="Manage forwardings automatically" onChange={(v) => act('auto', async () => r.setData(await put('/router/settings', { auto: v })))} />
             <span className="small">Manage forwardings automatically</span>
             <InfoTip pop title="Manage forwardings automatically">Checks every 30 minutes and after the start; cleans up Hostwerk forwardings that are no longer needed.</InfoTip>
+            {/* Shows whether the automatic mode really runs */}
+            {(d.lastSync || d.auto) && <span className="tiny muted">{d.lastSync ? t('Last sync {when}', { when: fmtDate(d.lastSync) }) : t('Not synced yet since the start')}</span>}
             <span className="router-sep" aria-hidden="true" />
             <Btn className="primary sm" icon={Wand2} busy={busy === 'sync'} disabled={!ready} onClick={sync}>Sync now</Btn>
-            <Btn className="sm" icon={Plus} disabled={!ready} onClick={() => setAdd({ port: '', protocol: 'TCP', label: '' })}>Own forwarding</Btn>
+            <Btn className="sm" icon={Plus} disabled={!ready} onClick={() => setAdd({ port: '', internal: '', protocol: 'TCP', label: '' })}>Own forwarding</Btn>
             {d.router && d.router.web && <Btn className="ghost sm" icon={ExternalLink} onClick={() => openExternal(d.router.web)}>Open the router interface</Btn>}
             <span className="grow" />
             <span className="row-tight router-wrap" role="list" aria-label={t('Ways to forward')}>
@@ -109,6 +114,7 @@ export function RouterTab() {
             <div className="grow small row-tight router-wrap">{w.label}<Origin o={w.origin} /></div>
             {w.state === 'ok' ? <span className="badge ok">forwarded</span> : w.state === 'other' ? <span className="badge warn">{t('given to {ip}', { ip: w.other })}</span> : <span className="badge">not forwarded</span>}
             {w.state === 'missing' && ready && <Btn className="xs" busy={busy === `f-${w.port}`} onClick={() => act(`f-${w.port}`, async () => r.setData(await post('/router/forward', { port: w.port, protocol: w.protocol, label: w.label })))}>Forward</Btn>}
+            {w.state === 'ok' && d.externalIp && <button type="button" className="btn ghost xs icon" title={t('Copy {addr}', { addr: `${d.externalIp}:${w.port}` })} aria-label={t('Copy {addr}', { addr: `${d.externalIp}:${w.port}` })} onClick={() => copy(`${d.externalIp}:${w.port}`)}><Copy /></button>}
             {w.state === 'ok' && <ReachCheck port={w.port} protocol={w.protocol} />}
           </div>
         ))) : d.mappings.length === 0 ? <TileEmpty text="No forwardings set up." /> : (
@@ -142,10 +148,11 @@ export function RouterTab() {
         </Sheet>
       )}
       {add && (
-        <Modal title="Own forwarding" onClose={() => setAdd(null)} footer={<><Btn onClick={() => setAdd(null)}>Cancel</Btn><Btn className="primary" busy={busy === 'add'} disabled={!(Number(add.port) > 0)} onClick={() => act('add', async () => { r.setData(await post('/router/forward', { ...add, port: Number(add.port), remember: true })); setAdd(null); toast.success('Forwarded'); })}>Forward</Btn></>}>
+        <Modal title="Own forwarding" onClose={() => setAdd(null)} footer={<><Btn onClick={() => setAdd(null)}>Cancel</Btn><Btn className="primary" busy={busy === 'add'} disabled={!portOk(add.port) || (add.internal !== '' && add.internal !== undefined && !portOk(add.internal))} onClick={() => act('add', async () => { r.setData(await post('/router/forward', { ...add, port: Number(add.port), internalPort: add.internal ? Number(add.internal) : undefined, remember: true })); setAdd(null); toast.success('Forwarded'); })}>Forward</Btn></>}>
           <div className="form-grid">
-            <Field label="Port"><input className="input mono" type="number" value={add.port} onChange={(e) => setAdd({ ...add, port: e.target.value })} /></Field>
+            <Field label="Port" hint={add.port !== '' && !portOk(add.port) ? '1 – 65535' : undefined}><input className="input mono" type="number" min="1" max="65535" step="1" value={add.port} onChange={(e) => setAdd({ ...add, port: e.target.value })} /></Field>
             <Field label="Protocol"><Seg value={add.protocol} onChange={(v) => setAdd({ ...add, protocol: v })} options={[{ id: 'TCP', label: 'TCP' }, { id: 'UDP', label: 'UDP' }]} /></Field>
+            <Field label="Internal port (optional)" hint={add.internal && !portOk(add.internal) ? '1 – 65535' : 'Only if the program on this PC listens on another port than the router opens.'}><input className="input mono" type="number" min="1" max="65535" step="1" placeholder={add.port || ''} value={add.internal || ''} onChange={(e) => setAdd({ ...add, internal: e.target.value })} /></Field>
             <Field label="Label" className="span-2"><input className="input" placeholder="e.g. game server" value={add.label} onChange={(e) => setAdd({ ...add, label: e.target.value })} /></Field>
           </div>
           <div className="tiny muted router-note">{t('The forwarding points to this PC ({ip}) and is kept by the automatic sync.', { ip: d.localIp })}</div>
@@ -165,11 +172,12 @@ export function FriendsShare({ s }) {
   const w = st.mappings.find((m) => m.externalPort === s.port && m.protocol === 'TCP');
   const addr = st.externalIp ? `${st.externalIp}${s.port === 25565 ? '' : `:${s.port}`}` : null;
   if (st.direct && !st.kind) return addr ? <div className="row-tight"><code className="grow ellipsis">{addr}</code><span className="tiny muted">for friends</span></div> : null;
-  if (w && w.here) return <div className="row-tight"><code className="grow ellipsis">{addr}</code><span className="badge ok">Forwarded for friends</span><button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy" onClick={() => copy(addr)}><Copy /></button></div>;
+  // Ohne bekannte öffentliche IP (Router nennt sie nicht) kein „null“ anzeigen
+  if (w && w.here) return <div className="row-tight">{addr ? <code className="grow ellipsis">{addr}</code> : <span className="grow" />}<span className="badge ok">Forwarded for friends</span>{addr && <button type="button" className="btn ghost xs icon" title="Copy" aria-label="Copy" onClick={() => copy(addr)}><Copy /></button>}</div>;
   return (
     <Btn className="sm" icon={Globe2} busy={busy} onClick={async () => {
       setBusy(true);
-      try { await post('/router/forward', { port: s.port, label: `Minecraft: ${s.name}` }); toast.success(t('Forwarded – friends connect to {addr}', { addr })); await check(); } catch (e) { toast.error(e); }
+      try { await post('/router/forward', { port: s.port, label: `Minecraft: ${s.name}` }); toast.success(addr ? t('Forwarded – friends connect to {addr}', { addr }) : t('Forwarded')); await check(); } catch (e) { toast.error(e); }
       setBusy(false);
     }}>Forward for friends on the internet</Btn>
   );

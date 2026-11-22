@@ -16,6 +16,9 @@
 .router-wifi-item.on { color: var(--text); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
 .router-wifi-item.on > svg { color: var(--ok); }
 .router-wrap { flex-wrap: wrap; gap: var(--sp-2); }
+/* Lange Erweiterungsnamen als Herkunft: nicht über die Spalte hinaus (schmale Fenster) */
+.router-wrap > .badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.router-page .list-item > .grow { min-width: 0; }
 .router-gap { margin-left: var(--sp-2); }
 .router-gap-3 { gap: var(--sp-3); }
 .router-tight { gap: var(--sp-2); }

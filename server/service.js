@@ -216,13 +216,15 @@ class RouterService {
     return new TR.Tr064(opts);
   }
   async login({ kind, base, user, pass, insecure }) {
-    if (!KINDS.includes(kind) || !/^https?:\/\/[^\s/]+\/?$/.test(base || '')) throw new Error(this.t('Please choose the router type.'));
+    if (!KINDS.includes(kind)) throw Object.assign(new Error(this.t('Please choose the router type.')), { status: 400 });
+    if (!/^https?:\/\/[^\s/]+\/?$/.test(String(base || '').trim())) throw Object.assign(new Error(this.t('Invalid router address – for example https://192.168.1.1')), { status: 400 });
+    base = String(base).trim();
     const opts = { base: String(base).replace(/\/$/, ''), user: String(user || '').trim(), pass: String(pass || ''), insecure: !!insecure };
     // Some routers (FRITZ!Box with "password only", OpenWrt) need no user name – then take the last used one or "root"
     if (!opts.user) {
       if (kind === 'openwrt') opts.user = 'root';
       else if (kind === 'mikrotik') opts.user = 'admin';
-      else if (kind === 'unifi') throw new Error(this.t('UniFi needs the name of a local UniFi user.'));
+      else if (kind === 'unifi') throw Object.assign(new Error(this.t('UniFi needs the name of a local UniFi user.')), { status: 400 });
       else { const users = await new TR.Tr064(opts).users().catch(() => []); opts.user = ((users.find((u) => u.last) || users[0]) || {}).name || ''; }
     }
     const d = RouterService.makeDriver(kind, opts);
@@ -232,7 +234,7 @@ class RouterService {
     this.drv = null; this.cache = null;
     return this.loginStatus();
   }
-  logout() { delete this.cfg.login; this.drv = null; this.ctx.settings.save(); return { loggedIn: false }; }
+  logout() { delete this.cfg.login; this.drv = null; this.cache = null; this.ctx.settings.save(); return { loggedIn: false }; }
   loginStatus() { const l = this.cfg.login; return l ? { loggedIn: true, kind: l.kind, base: l.base, user: l.user, model: l.model, at: l.at } : { loggedIn: false }; }
   /** Router call with a readable error; a wrong password marks the access as invalid. */
   async via(fn) {
@@ -372,7 +374,7 @@ class RouterService {
     const { t } = this;
     const igd = await this.igd(force);
     const out = {
-      gateway: igd.gateway, localIp: igd.localIp, iface: igd.iface, auto: !!this.cfg.auto,
+      gateway: igd.gateway, localIp: igd.localIp, iface: igd.iface, auto: !!this.cfg.auto, lastSync: this.lastSync ? this.lastSync.at : null,
       // Public address right on the computer → data centre/VPS: no router, only the firewall
       direct: igd.addresses.some((a) => !R.isPrivate(a) && !R.isCgnat(a) && !a.startsWith('127.')),
       router: null, kind: igd.upnp ? 'upnp' : igd.natpmp ? 'natpmp' : null, externalIp: null, connection: null, mappings: [], wanted: this.wanted(), hint: null, problems: [],
@@ -428,10 +430,13 @@ class RouterService {
   async forward({ port, internalPort, protocol = 'TCP', label = '' }) {
     const { t } = this;
     port = Number(port);
-    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(t('Invalid port'));
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw Object.assign(new Error(t('Invalid port')), { status: 400 });
+    // Schnittstelle: „tcp“ oder Unsinn ginge sonst ungeprüft an den Router (und in cfg.extra)
+    protocol = String(protocol || 'TCP').toUpperCase();
+    if (!['TCP', 'UDP'].includes(protocol)) throw Object.assign(new Error(t('Protocol must be TCP or UDP.')), { status: 400 });
     const igd = await this.igd();
     if (!igd.localIp) throw new Error(t('No network connection found.'));
-    const description = PREFIX + (label || `Port ${port}`);
+    const description = PREFIX + (String(label || '').trim().slice(0, 80) || `Port ${port}`);
     // With router access create it directly – works even if the router forbids UPnP forwardings for this PC
     const drv = this.driver();
     if (drv) {
@@ -444,6 +449,11 @@ class RouterService {
   }
 
   async unforward({ port, protocol = 'TCP' }) {
+    // wie forward(): „tcp“ würde sonst am Router nichts finden und die gemerkte Freigabe bliebe stehen
+    port = Number(port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw Object.assign(new Error(this.t('Invalid port')), { status: 400 });
+    protocol = String(protocol || 'TCP').toUpperCase();
+    if (!['TCP', 'UDP'].includes(protocol)) throw Object.assign(new Error(this.t('Protocol must be TCP or UDP.')), { status: 400 });
     const igd = await this.igd();
     const drv = this.driver();
     if (drv) { try { await drv.removeMapping({ externalPort: Number(port), protocol }); return true; } catch (e) { if (!igd.upnp) throw e; } }
@@ -499,14 +509,18 @@ class RouterService {
     r.post('/router/forward', async (req, res) => {
       const b = req.body || {};
       const x = await this.forward(b);
-      if (b.remember) { this.cfg.extra = [...this.cfg.extra.filter((e) => !(e.port === x.port && e.protocol === x.protocol)), { port: x.port, protocol: x.protocol, label: b.label || '' }]; this.ctx.settings.save(); }
+      // Remembered with its internal port (server listens on another port than the router opens) – the sync keeps it so
+      const ip = Number(b.internalPort);
+      const internal = Number.isInteger(ip) && ip >= 1 && ip <= 65535 && ip !== x.port ? { internalPort: ip } : {};
+      if (b.remember) { this.cfg.extra = [...this.cfg.extra.filter((e) => !(e.port === x.port && e.protocol === x.protocol)), { port: x.port, protocol: x.protocol, label: String(b.label || '').trim().slice(0, 80), ...internal }]; this.ctx.settings.save(); }
       this.cache = null;
       res.json(await this.status(true));
     });
     r.post('/router/unforward', async (req, res) => {
       const b = req.body || {};
       await this.unforward(b);
-      this.cfg.extra = this.cfg.extra.filter((e) => !(e.port === Number(b.port) && e.protocol === (b.protocol || 'TCP')));
+      const proto = String(b.protocol || 'TCP').toUpperCase();
+      this.cfg.extra = this.cfg.extra.filter((e) => !(e.port === Number(b.port) && e.protocol === proto));
       this.ctx.settings.save();
       this.cache = null;
       res.json(await this.status(true));
@@ -518,11 +532,12 @@ class RouterService {
       const d = this.dyn;
       // Seit 1.5.0 richtet man feste Namen in der DNS-Verwaltung ein – hier gehen nur noch Abschalten und Ändern eines
       // bestehenden Namens (z. B. Token erneuern), damit alte Einrichtungen weiterlaufen
-      if (b.provider && !d.provider) throw new Error(t('Set up fixed names (DynDNS) in DNS management.'));
-      if (b.provider !== undefined) { if (!['', 'duckdns', 'dynv6', 'desec', 'custom'].includes(b.provider)) throw new Error(t('Unknown DynDNS provider.')); d.provider = b.provider; }
-      if (typeof b.domain === 'string') { if (b.domain && !/^[a-z0-9.-]+\.[a-z]{2,}$|^[a-z0-9-]+$/i.test(b.domain.trim())) throw new Error(t('Invalid name.')); d.domain = b.domain.trim().toLowerCase(); }
+      const bad = (m) => Object.assign(new Error(t(m)), { status: 400 }); // Eingabefehler – nicht als „Router antwortet nicht“ (502)
+      if (b.provider && !d.provider) throw bad('Set up fixed names (DynDNS) in DNS management.');
+      if (b.provider !== undefined) { if (!['', 'duckdns', 'dynv6', 'desec', 'custom'].includes(b.provider)) throw bad('Unknown DynDNS provider.'); d.provider = b.provider; }
+      if (typeof b.domain === 'string') { if (b.domain && !/^[a-z0-9.-]+\.[a-z]{2,}$|^[a-z0-9-]+$/i.test(b.domain.trim())) throw bad('Invalid name.'); d.domain = b.domain.trim().toLowerCase(); }
       if (typeof b.token === 'string' && b.token.trim()) d.token = this.secrets.seal(b.token.trim());
-      if (typeof b.url === 'string') { if (b.url && !/^https:\/\//.test(b.url)) throw new Error(t('The address must start with https://.')); d.url = b.url.trim(); }
+      if (typeof b.url === 'string') { if (b.url && !/^https:\/\//.test(b.url)) throw bad('The address must start with https://.'); d.url = b.url.trim(); }
       d.last = null;
       this.ctx.settings.save();
       let result = null; let error = null;

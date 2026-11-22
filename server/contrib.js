@@ -28,7 +28,8 @@ function contribute(host, svc) {
     checks: [{ label: 'Router/DynDNS', run: () => svc.autoTick() }],
     areas: [{
       id: 'router', label: 'Router-Freigaben & DynDNS', url: '#/live/online/router', every: 'laufend', keys: ['router'],
-      auto: () => (svc.cfg && (svc.cfg.auto || svc.cfg.dyndns) ? true : 'teils'),
+      // dyndns ist nach der ersten Abfrage immer ein (leeres) Objekt – zählt nur mit Anbieter
+      auto: () => (svc.cfg && (svc.cfg.auto || (svc.cfg.dyndns && svc.cfg.dyndns.provider)) ? true : 'teils'),
       text: 'Freigaben werden erneuert, DynDNS aktualisiert – sofern eingerichtet.',
       detail: ['Portfreigaben am Router werden regelmäßig erneuert, DynDNS bekommt neue IP-Adressen.', 'Einmal im Livebetrieb einrichten.'],
     }],
@@ -60,7 +61,8 @@ function contribute(host, svc) {
   // Neu in SDK 3.11 – ältere Hostwerk-Versionen kennen die Art nicht und werfen
   try { host.contribute('live.overview', { list: () => overviewPoints(svc) }); } catch { /* older Hostwerk */ }
   host.contribute('audit', {
-    routes: [[/^\/router\/(forward|map|open|ports?)/, (m, c, req) => ({ kind: 'Router', target: req.body && (req.body.port || req.body.name) ? `Port ${req.body.port || ''} ${req.body.name || ''}`.trim() : 'Freigabe', action: req.method === 'DELETE' ? 'Freigabe entfernt' : 'Port freigegeben' })]],
+    // Entfernen läuft über POST /router/unforward (früher fehlte es im Protokoll)
+    routes: [[/^\/router\/(unforward|forward|map|open|ports?)/, (m, c, req) => ({ kind: 'Router', target: req.body && (req.body.port || req.body.name) ? `Port ${req.body.port || ''} ${req.body.name || ''}`.trim() : 'Freigabe', action: req.method === 'DELETE' || m[1] === 'unforward' ? 'Freigabe entfernt' : 'Port freigegeben' })]],
   });
 }
 

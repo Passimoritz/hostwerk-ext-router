@@ -51,7 +51,7 @@ function Login({ det, onDone }) {
           {k && k.users.length > 1 ? <select className="select" value={user} onChange={(e) => setUser(e.target.value)}>{k.users.map((u) => <option key={u.name} value={u.name}>{u.name}</option>)}</select>
             : <input className="input" value={user} onChange={(e) => setUser(e.target.value)} />}
         </Field>
-        <Field label="Password"><input className="input" type="password" value={pass} autoComplete="current-password" onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && go()} /></Field>
+        <Field label="Password"><input className="input" type="password" value={pass} autoComplete="current-password" onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && pass && !busy && go()} /></Field>
       </div>
       <div className="row-tight"><Btn className="primary" icon={KeyRound} busy={busy} disabled={!pass} onClick={go}>Sign in</Btn><span className="tiny muted">{k.label} · {k.manual ? base : k.base}</span></div>
     </div>
@@ -65,7 +65,7 @@ function Devices() {
   if (d.error) return <Callout kind="warn">{d.error}</Callout>;
   if (!d.data) return <Loading text="Loading devices …" />;
   const list = d.data.filter((x) => (show === 'all' || x.active) && (!q.trim() || `${x.name} ${x.ip} ${x.mac}`.toLowerCase().includes(q.trim().toLowerCase())))
-    .sort((a, b) => b.active - a.active || a.name.localeCompare(b.name));
+    .sort((a, b) => b.active - a.active || String(a.name || '').localeCompare(String(b.name || '')));
   const wake = async (x) => { try { await post(`/router/devices/${encodeURIComponent(x.mac)}/wake`); toast.success(t('Wake-up call sent to {name}', { name: x.name })); } catch (e) { toast.error(e); } };
   const rename = async (x) => { const n = await promptDialog({ title: 'Rename device', label: 'Name in the router', value: x.name, confirm: 'Rename' }); if (!n) return; try { await put(`/router/devices/${encodeURIComponent(x.mac)}`, { name: n }); d.reload(); } catch (e) { toast.error(e); } };
   return (
@@ -179,7 +179,7 @@ export default function RouterAccess({ onChange }) {
       </div>
     );
   }
-  const logout = async () => { if (!(await confirmDialog({ title: 'Sign out of the router?', text: 'Hostwerk forgets user and password. Forwardings then go through UPnP again.', confirm: 'Sign out' }))) return; await del('/router/login'); setM(null); det.reload(); if (onChange) onChange(); };
+  const logout = async () => { if (!(await confirmDialog({ title: 'Sign out of the router?', text: 'Hostwerk forgets user and password. Forwardings then go through UPnP again.', confirm: 'Sign out' }))) return; try { await del('/router/login'); } catch (e) { toast.error(e); return; } setM(null); det.reload(); if (onChange) onChange(); };
   const reboot = async () => { if (!(await confirmDialog({ title: 'Restart the router?', text: 'Internet and Wi-Fi are gone for 2–4 minutes – for everyone in the house.', confirm: 'Restart', danger: true }))) return; try { await post('/router/reboot'); toast('The router is restarting …'); } catch (e) { toast.error(e); } };
   const reconnect = async () => { if (!(await confirmDialog({ title: 'Reconnect?', text: 'The internet connection drops briefly – usually you get a new public IP afterwards.', confirm: 'Reconnect' }))) return; try { await post('/router/reconnect'); toast('Reconnecting …'); setTimeout(() => { get('/router/manage').then(setM).catch(() => {}); if (onChange) onChange(); }, 8000); } catch (e) { toast.error(e); } };
   return (
@@ -189,7 +189,7 @@ export default function RouterAccess({ onChange }) {
         {logged && <div className="right row-tight"><Btn className="ghost sm" icon={LogOut} onClick={logout}>Sign out</Btn></div>}
       </div>
       <div className="card-body stack router-gap-3">
-        {!m ? <Loading /> : m.error ? <Callout kind="warn" title="Sign-in no longer works">{m.error} <button type="button" className="link-btn" onClick={async () => { await del('/router/login'); det.reload(); }}>Sign in again</button></Callout> : (
+        {!m ? <Loading /> : m.error ? <Callout kind="warn" title="Sign-in no longer works">{m.error} <button type="button" className="link-btn" onClick={async () => { try { await del('/router/login'); } catch (e) { toast.error(e); return; } setM(null); det.reload(); if (onChange) onChange(); }}>Sign in again</button></Callout> : (
           <>
             <div className="router-facts">
               <div><span className="tiny muted">Model</span><b>{m.info.model}</b><span className="tiny muted">{m.info.firmware}</span></div>

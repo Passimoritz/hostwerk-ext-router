@@ -136,7 +136,7 @@
   "Remove the forwarding for port {port}?": "Freigabe für Port {port} entfernen?",
   "Router login ({model})": "Router-Anmeldung ({model})",
   "Router login": "Router-Anmeldung",
-  "This computer has a public address directly ({ip}) – typical for rented servers in a data centre. Ports only have to be open in the firewall (tab “Security”).": "Dieser Rechner hat eine öffentliche Adresse direkt ({ip}) – typisch für Mietserver im Rechenzentrum. Ports müssen nur in der Firewall offen sein (Reiter „Sicherheit“).",
+  "This computer has a public address directly ({ip}) – typical for rented servers in a data centre. Ports only have to be open in the firewall (Go live → Protection → Firewall).": "Dieser Rechner hat eine öffentliche Adresse direkt ({ip}) – typisch für Mietserver im Rechenzentrum. Ports müssen nur in der Firewall offen sein (Livebetrieb → Schutz → Firewall).",
   "Open the router interface": "Router-Oberfläche öffnen",
   "Tip for {vendor}": "Tipp für {vendor}",
   "Open router": "Router öffnen",
@@ -193,6 +193,7 @@
   "Router access: {msg}": "Router-Zugang: {msg}",
   "Invalid port": "Ungültiger Port",
   "Protocol must be TCP or UDP.": "Protokoll muss TCP oder UDP sein.",
+  "Invalid router address – for example https://192.168.1.1": "Ungültige Router-Adresse – zum Beispiel https://192.168.1.1",
   "Port {port} is already used by {other}.": "Port {port} nutzt schon {other}.",
   "No network connection found.": "Keine Netzwerkverbindung gefunden.",
   "No router with UPnP or NAT-PMP found – please set up the forwarding by hand in the router.": "Kein Router mit UPnP oder NAT-PMP gefunden – Freigabe bitte im Router von Hand einrichten.",
@@ -400,5 +401,11 @@
   "Router forwardings": "Router-Freigaben",
   "{n} failed: {error}": "{n} fehlgeschlagen: {error}",
   "Not forwarded yet: port {ports}": "Noch nicht freigegeben: Port {ports}",
-  "{n} of {n} forwarded": "{n} von {n} freigegeben"
+  "{n} of {n} forwarded": "{n} von {n} freigegeben",
+  "The router cannot be read right now": "Der Router lässt sich gerade nicht abfragen",
+  "Last sync {when}": "Zuletzt abgeglichen {when}",
+  "Not synced yet since the start": "Seit dem Start noch nicht abgeglichen",
+  "Copy {addr}": "{addr} kopieren",
+  "Internal port (optional)": "Interner Port (optional)",
+  "Only if the program on this PC listens on another port than the router opens.": "Nur wenn das Programm auf diesem PC auf einem anderen Port lauscht, als der Router öffnet."
 }
